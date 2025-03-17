@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/task.dart';
-import '../../domain/usecases/get_tasks.dart';
+import '../../domain/repositories/task_repository.dart';
 
 // Events
 abstract class TasksEvent {}
@@ -46,13 +46,13 @@ class TasksError extends TasksState {
 
 // Bloc
 class TasksBloc extends Bloc<TasksEvent, TasksState> {
-  final GetTasks getTasks;
+  final TaskRepository repository;
 
-  TasksBloc({required this.getTasks}) : super(TasksInitial()) {
+  TasksBloc({required this.repository}) : super(TasksInitial()) {
     on<FetchTasks>((event, emit) async {
       emit(TasksLoading());
       try {
-        final tasks = await getTasks();
+        final tasks = await repository.getTasks();
         emit(TasksLoaded(tasks));
       } catch (e) {
         emit(TasksError(e.toString()));
@@ -60,41 +60,42 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     });
 
     on<AddTask>((event, emit) async {
-      if (state is TasksLoaded) {
-        final currentState = state as TasksLoaded;
-        final updatedTasks = List<Task>.from(currentState.tasks)..add(event.task);
-        emit(TasksLoaded(updatedTasks));
+      try {
+        await repository.createTask(event.task);
+        final tasks = await repository.getTasks();
+        emit(TasksLoaded(tasks));
+      } catch (e) {
+        emit(TasksError(e.toString()));
       }
     });
 
     on<UpdateTask>((event, emit) async {
-      if (state is TasksLoaded) {
-        final currentState = state as TasksLoaded;
-        final updatedTasks = currentState.tasks.map((task) {
-          return task.id == event.task.id ? event.task : task;
-        }).toList();
-        emit(TasksLoaded(updatedTasks));
+      try {
+        await repository.updateTask(event.task);
+        final tasks = await repository.getTasks();
+        emit(TasksLoaded(tasks));
+      } catch (e) {
+        emit(TasksError(e.toString()));
       }
     });
 
     on<DeleteTask>((event, emit) async {
-      if (state is TasksLoaded) {
-        final currentState = state as TasksLoaded;
-        final updatedTasks = currentState.tasks.where((task) => task.id != event.id).toList();
-        emit(TasksLoaded(updatedTasks));
+      try {
+        await repository.deleteTask(event.id);
+        final tasks = await repository.getTasks();
+        emit(TasksLoaded(tasks));
+      } catch (e) {
+        emit(TasksError(e.toString()));
       }
     });
 
     on<ToggleTaskCompletion>((event, emit) async {
-      if (state is TasksLoaded) {
-        final currentState = state as TasksLoaded;
-        final updatedTasks = currentState.tasks.map((task) {
-          if (task.id == event.id) {
-            return task.copyWith(isCompleted: !task.isCompleted);
-          }
-          return task;
-        }).toList();
-        emit(TasksLoaded(updatedTasks));
+      try {
+        await repository.toggleTaskCompletion(event.id);
+        final tasks = await repository.getTasks();
+        emit(TasksLoaded(tasks));
+      } catch (e) {
+        emit(TasksError(e.toString()));
       }
     });
   }
