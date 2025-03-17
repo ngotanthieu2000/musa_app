@@ -1,56 +1,86 @@
 // features/home/presentation/pages/home_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../widgets/header_widget.dart';
-import '../widgets/welcome_section.dart';
-import '../widgets/today_tasks_section.dart';
-import '../widgets/feature_cards_section.dart';
-import '../widgets/quick_actions_sidebar.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/widgets/auth_buttons.dart';
+import '../../domain/entities/feature.dart';
 import '../bloc/home_bloc.dart';
+import '../widgets/feature_card.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              HeaderWidget(),
-              WelcomeSection(),
-              TodayTasksSection(),
-              QuickActionsSidebar(),
-              FeatureCardsSection(),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.task),
-            label: 'Tasks',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Chat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+      appBar: AppBar(
+        title: Text('AI Learning App'),
+        actions: [
+          BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              if (state is AuthSuccess && state.isAuthenticated) {
+                return IconButton(
+                  icon: Icon(Icons.logout),
+                  onPressed: () {
+                    context.read<AuthBloc>().add(LogoutRequested());
+                  },
+                );
+              }
+              return SizedBox.shrink();
+            },
           ),
         ],
-        currentIndex: 0,
-        onTap: (index) {
-          // TODO: Implement navigation
+      ),
+      body: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, authState) {
+          if (authState is AuthLoading) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (authState is AuthSuccess && !authState.isAuthenticated) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Chào mừng đến với AI Learning App',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  SizedBox(height: 24),
+                  AuthButtons(),
+                ],
+              ),
+            );
+          }
+
+          return BlocBuilder<HomeBloc, HomeState>(
+            builder: (context, state) {
+              if (state is HomeLoading) {
+                return Center(child: CircularProgressIndicator());
+              }
+
+              if (state is HomeError) {
+                return Center(child: Text(state.message));
+              }
+
+              if (state is HomeLoaded) {
+                return GridView.builder(
+                  padding: EdgeInsets.all(16),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 1.5,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: state.features.length,
+                  itemBuilder: (context, index) {
+                    final feature = state.features[index];
+                    return FeatureCard(feature: feature);
+                  },
+                );
+              }
+
+              return Center(child: Text('Vui lòng đăng nhập để tiếp tục'));
+            },
+          );
         },
       ),
     );
