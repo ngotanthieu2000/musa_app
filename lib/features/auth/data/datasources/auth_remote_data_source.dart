@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../../config/env_config.dart';
 import '../models/auth_model.dart';
 
 abstract class AuthRemoteDataSource {
@@ -14,7 +15,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   AuthRemoteDataSourceImpl({
     required this.client,
-    this.baseUrl = 'http://localhost:8080/api/v1',
+    this.baseUrl = EnvConfig.apiBaseUrl,
   });
 
   @override
