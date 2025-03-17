@@ -24,7 +24,15 @@ class HomePage extends StatelessWidget {
                   },
                 );
               }
-              return SizedBox.shrink();
+              return IconButton(
+                icon: Icon(Icons.login),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AuthDialog(isLogin: true),
+                  );
+                },
+              );
             },
           ),
         ],
