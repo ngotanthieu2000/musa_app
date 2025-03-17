@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myapp/features/home/presentation/bloc/home_bloc.dart';
 import 'package:myapp/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:myapp/features/tasks/presentation/bloc/tasks_bloc.dart';
 import 'package:myapp/features/navigation/presentation/widgets/app_navigation.dart';
 import 'injection_container.dart' as di;
 
@@ -20,6 +21,9 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => di.sl<HomeBloc>()..add(FetchHomeFeatures())),
         BlocProvider(
           create: (context) => di.sl<AuthBloc>()..add(CheckAuthStatus()),
+        ),
+        BlocProvider(
+          create: (context) => di.sl<TasksBloc>()..add(FetchTasks()),
         ),
       ],
       child: MaterialApp(
