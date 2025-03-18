@@ -17,11 +17,11 @@ final sl = GetIt.instance;
 Future<void> init() async {
   // Blocs
   sl.registerFactory(
-    () => HomeBloc(sl()),
+    () => HomeBloc(getHomeFeatures: sl()),
   );
 
   sl.registerFactory(
-    () => AuthBloc(sl()),
+    () => AuthBloc(repository: sl()),
   );
 
   sl.registerFactory(

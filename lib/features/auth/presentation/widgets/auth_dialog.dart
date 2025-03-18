@@ -40,9 +40,9 @@ class _AuthDialogState extends State<AuthDialog> {
       } else {
         context.read<AuthBloc>().add(
           RegisterRequested(
-            name: _nameController.text,
             email: _emailController.text,
             password: _passwordController.text,
+            name: _nameController.text,
           ),
         );
       }

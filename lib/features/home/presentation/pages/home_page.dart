@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/feature_card.dart';
 import '../../../auth/presentation/widgets/auth_dialog.dart';
+import '../../domain/entities/feature.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -53,7 +54,12 @@ class HomePage extends StatelessWidget {
               ),
               itemCount: state.features.length,
               itemBuilder: (context, index) {
-                final feature = state.features[index];
+                final homeFeature = state.features[index];
+                final feature = Feature(
+                  title: homeFeature.title,
+                  icon: homeFeature.icon,
+                  route: '/${homeFeature.title.toLowerCase().replaceAll(' ', '_')}',
+                );
                 return FeatureCard(feature: feature);
               },
             );
