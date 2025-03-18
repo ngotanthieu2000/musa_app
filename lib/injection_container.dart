@@ -25,7 +25,7 @@ Future<void> init() async {
   );
 
   sl.registerFactory(
-    () => TasksBloc(sl()),
+    () => TasksBloc(repository: sl()),
   );
 
   // Use Cases
@@ -54,5 +54,5 @@ Future<void> init() async {
   );
 
   // External
-  sl.registerLazySingleton(() => http.Client());
+  sl.registerLazySingleton<http.Client>(() => http.Client());
 }
