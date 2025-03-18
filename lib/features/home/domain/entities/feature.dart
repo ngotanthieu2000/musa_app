@@ -10,4 +10,4 @@ class Feature {
     required this.icon,
     required this.route,
   });
-} 
+}

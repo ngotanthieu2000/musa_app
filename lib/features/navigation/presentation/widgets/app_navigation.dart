@@ -17,7 +17,7 @@ class _AppNavigationState extends State<AppNavigation> {
     HomePage(),
     TasksPage(),
     ChatPage(),
-    ProfilePage(),
+    // ProfilePage(),
   ];
 
   @override
@@ -53,4 +53,4 @@ class _AppNavigationState extends State<AppNavigation> {
       ),
     );
   }
-} 
+}

@@ -42,7 +42,6 @@ class _AuthDialogState extends State<AuthDialog> {
           RegisterRequested(
             email: _emailController.text,
             password: _passwordController.text,
-            name: _nameController.text,
           ),
         );
       }

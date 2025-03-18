@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
           useMaterial3: true,
         ),
-        home: const AppNavigation(),
+        home: AppNavigation(),
       ),
     );
   }

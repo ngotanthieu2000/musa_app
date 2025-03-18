@@ -58,7 +58,8 @@ class HomePage extends StatelessWidget {
                 final feature = Feature(
                   title: homeFeature.title,
                   icon: homeFeature.icon,
-                  route: '/${homeFeature.title.toLowerCase().replaceAll(' ', '_')}',
+                  route:
+                      '/${homeFeature.title.toLowerCase().replaceAll(' ', '_')}',
                 );
                 return FeatureCard(feature: feature);
               },

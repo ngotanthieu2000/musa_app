@@ -1,8 +1,14 @@
 // features/home/domain/entities/home_feature.dart
-class HomeFeature {
-  final String id;
-  final String title;
-  final String icon;
+import 'package:flutter/material.dart';
 
-  HomeFeature({required this.id, required this.title, required this.icon});
+class HomeFeature {
+  final String title;
+  final IconData icon;
+  final String route;
+
+  HomeFeature({
+    required this.title,
+    required this.icon,
+    required this.route,
+  });
 }
