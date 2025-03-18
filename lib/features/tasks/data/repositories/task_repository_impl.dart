@@ -1,6 +1,7 @@
 import '../../domain/entities/task.dart';
 import '../../domain/repositories/task_repository.dart';
 import '../datasources/task_remote_data_source.dart';
+import '../models/task_model.dart';
 
 class TaskRepositoryImpl implements TaskRepository {
   final TaskRemoteDataSource remoteDataSource;
@@ -40,7 +41,17 @@ class TaskRepositoryImpl implements TaskRepository {
   @override
   Future<Task> updateTask(Task task) async {
     try {
-      return await remoteDataSource.updateTask(task);
+      final taskModel = TaskModel(
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        dueDate: task.dueDate,
+        isCompleted: task.isCompleted,
+        priority: task.priority,
+        category: task.category,
+        createdAt: task.createdAt,
+      );
+      return await remoteDataSource.updateTask(taskModel);
     } catch (e) {
       throw Exception('Failed to update task: $e');
     }

@@ -1,94 +1,64 @@
 // features/home/presentation/pages/home_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../auth/presentation/widgets/auth_buttons.dart';
-import '../../domain/entities/feature.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/feature_card.dart';
+import '../../auth/presentation/widgets/auth_dialog.dart';
 
 class HomePage extends StatelessWidget {
+  const HomePage({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('AI Learning App'),
+        title: const Text('Musa App'),
         actions: [
-          BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              if (state is AuthSuccess && state.isAuthenticated) {
-                return IconButton(
-                  icon: Icon(Icons.logout),
-                  onPressed: () {
-                    context.read<AuthBloc>().add(LogoutRequested());
-                  },
-                );
-              }
-              return IconButton(
-                icon: Icon(Icons.login),
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AuthDialog(isLogin: true),
-                  );
-                },
+          IconButton(
+            icon: const Icon(Icons.login),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => const AuthDialog(isLogin: true),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_add),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => const AuthDialog(isLogin: false),
               );
             },
           ),
         ],
       ),
-      body: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, authState) {
-          if (authState is AuthLoading) {
-            return Center(child: CircularProgressIndicator());
+      body: BlocBuilder<HomeBloc, HomeState>(
+        builder: (context, state) {
+          if (state is HomeLoading) {
+            return const Center(child: CircularProgressIndicator());
           }
-
-          if (authState is AuthSuccess && !authState.isAuthenticated) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Chào mừng đến với AI Learning App',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  SizedBox(height: 24),
-                  AuthButtons(),
-                ],
+          if (state is HomeError) {
+            return Center(child: Text(state.message));
+          }
+          if (state is HomeLoaded) {
+            return GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 1,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
               ),
+              itemCount: state.features.length,
+              itemBuilder: (context, index) {
+                final feature = state.features[index];
+                return FeatureCard(feature: feature);
+              },
             );
           }
-
-          return BlocBuilder<HomeBloc, HomeState>(
-            builder: (context, state) {
-              if (state is HomeLoading) {
-                return Center(child: CircularProgressIndicator());
-              }
-
-              if (state is HomeError) {
-                return Center(child: Text(state.message));
-              }
-
-              if (state is HomeLoaded) {
-                return GridView.builder(
-                  padding: EdgeInsets.all(16),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.5,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: state.features.length,
-                  itemBuilder: (context, index) {
-                    final feature = state.features[index];
-                    return FeatureCard(feature: feature);
-                  },
-                );
-              }
-
-              return Center(child: Text('Vui lòng đăng nhập để tiếp tục'));
-            },
-          );
+          return const SizedBox.shrink();
         },
       ),
     );
