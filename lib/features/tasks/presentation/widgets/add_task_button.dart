@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'task_form.dart';
 
 class AddTaskButton extends StatelessWidget {
+  const AddTaskButton({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -11,10 +13,10 @@ class AddTaskButton extends StatelessWidget {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
-            builder: (context) => TaskForm(),
+            builder: (context) => const TaskForm(),
           );
         },
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.add),
@@ -25,4 +27,4 @@ class AddTaskButton extends StatelessWidget {
       ),
     );
   }
-} 
+}

@@ -65,6 +65,7 @@ class QuickActionsSidebar extends StatelessWidget {
               height: 60,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                // ignore: deprecated_member_use
                 color: Theme.of(context).primaryColor.withOpacity(0.1),
               ),
               child: Icon(

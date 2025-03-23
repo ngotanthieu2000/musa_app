@@ -5,16 +5,18 @@ import '../widgets/task_list.dart';
 import '../widgets/add_task_button.dart';
 
 class TasksPage extends StatelessWidget {
+  const TasksPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Công việc'),
+        title: const Text('Công việc'),
       ),
       body: BlocBuilder<TasksBloc, TasksState>(
         builder: (context, state) {
           if (state is TasksLoading) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (state is TasksError) {
@@ -27,12 +29,12 @@ class TasksPage extends StatelessWidget {
                 Expanded(
                   child: TaskList(tasks: state.tasks),
                 ),
-                AddTaskButton(),
+                const AddTaskButton(),
               ],
             );
           }
 
-          return Center(child: Text('Không có công việc nào'));
+          return const Center(child: Text('Không có công việc nào'));
         },
       ),
     );

@@ -15,14 +15,16 @@ class HomeRepositoryImpl implements HomeRepository {
   Future<Either<Failure, List<HomeFeature>>> getHomeFeatures() async {
     try {
       // Lấy dữ liệu từ RemoteDataSource
-      final List<HomeFeatureModel> featureModels = await remoteDataSource.getHomeFeatures();
+      final List<HomeFeatureModel> featureModels =
+          await remoteDataSource.getHomeFeatures();
 
       // Chuyển đổi List<HomeFeatureModel> sang List<HomeFeature>
-      final List<HomeFeature> features = featureModels.map((model) => model.toEntity()).toList();
+      final List<HomeFeature> features =
+          featureModels.map((model) => model.toEntity()).toList();
 
       return Right(features);
     } catch (e) {
-      return Left(ServerFailure());
+      return const Left(ServerFailure());
     }
   }
 }

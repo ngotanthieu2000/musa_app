@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'auth_dialog.dart';
 
 class AuthButtons extends StatelessWidget {
+  const AuthButtons({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -9,12 +11,12 @@ class AuthButtons extends StatelessWidget {
       children: [
         ElevatedButton(
           onPressed: () => _showAuthDialog(context, true),
-          child: Text('Đăng nhập'),
+          child: const Text('Đăng nhập'),
         ),
-        SizedBox(width: 16),
+        const SizedBox(width: 16),
         OutlinedButton(
           onPressed: () => _showAuthDialog(context, false),
-          child: Text('Đăng ký'),
+          child: const Text('Đăng ký'),
         ),
       ],
     );
@@ -26,4 +28,4 @@ class AuthButtons extends StatelessWidget {
       builder: (context) => AuthDialog(isLogin: isLogin),
     );
   }
-} 
+}

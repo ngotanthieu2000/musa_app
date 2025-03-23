@@ -5,13 +5,13 @@ import '../../domain/entities/home_feature.dart';
 class HomeFeatureList extends StatelessWidget {
   final List<HomeFeature> features;
 
-  const HomeFeatureList({required this.features});
+  const HomeFeatureList({super.key, required this.features});
 
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      padding: EdgeInsets.all(16),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
@@ -24,8 +24,8 @@ class HomeFeatureList extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.chat), // Thay bằng icon từ feature.icon
-                SizedBox(height: 8),
+                const Icon(Icons.chat), // Thay bằng icon từ feature.icon
+                const SizedBox(height: 8),
                 Text(feature.title),
               ],
             ),

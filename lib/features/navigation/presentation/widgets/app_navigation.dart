@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../tasks/presentation/pages/tasks_page.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
-import '../../../profile/presentation/pages/profile_page.dart';
 
 class AppNavigation extends StatefulWidget {
+  const AppNavigation({super.key});
+
   @override
+  // ignore: library_private_types_in_public_api
   _AppNavigationState createState() => _AppNavigationState();
 }
 
@@ -14,9 +15,9 @@ class _AppNavigationState extends State<AppNavigation> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
-    HomePage(),
-    TasksPage(),
-    ChatPage(),
+    const HomePage(),
+    const TasksPage(),
+    const ChatPage(),
     // ProfilePage(),
   ];
 
@@ -32,7 +33,7 @@ class _AppNavigationState extends State<AppNavigation> {
             _currentIndex = index;
           });
         },
-        items: [
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',

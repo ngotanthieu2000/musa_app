@@ -3,7 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/tasks_bloc.dart';
 
 class TaskForm extends StatefulWidget {
+  const TaskForm({super.key});
+
   @override
+  // ignore: library_private_types_in_public_api
   _TaskFormState createState() => _TaskFormState();
 }
 
@@ -22,9 +25,9 @@ class _TaskFormState extends State<TaskForm> {
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       context.read<TasksBloc>().add(AddTask(
-        title: _titleController.text,
-        description: _descriptionController.text,
-      ));
+            title: _titleController.text,
+            description: _descriptionController.text,
+          ));
       Navigator.pop(context);
     }
   }
@@ -36,7 +39,7 @@ class _TaskFormState extends State<TaskForm> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
@@ -44,7 +47,7 @@ class _TaskFormState extends State<TaskForm> {
             children: [
               TextFormField(
                 controller: _titleController,
-                decoration: InputDecoration(labelText: 'Tiêu đề'),
+                decoration: const InputDecoration(labelText: 'Tiêu đề'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Vui lòng nhập tiêu đề';
@@ -52,16 +55,16 @@ class _TaskFormState extends State<TaskForm> {
                   return null;
                 },
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
-                decoration: InputDecoration(labelText: 'Mô tả'),
+                decoration: const InputDecoration(labelText: 'Mô tả'),
                 maxLines: 3,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _submitForm,
-                child: Text('Thêm công việc'),
+                child: const Text('Thêm công việc'),
               ),
             ],
           ),
@@ -69,4 +72,4 @@ class _TaskFormState extends State<TaskForm> {
       ),
     );
   }
-} 
+}
