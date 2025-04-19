@@ -1,125 +1,93 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:equatable/equatable.dart';
-import '../../domain/repositories/auth_repository.dart';
+import 'dart:async';
+import 'package:bloc/bloc.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
+import '../../domain/entities/user.dart';
+import '../../domain/usecases/login_user.dart';
+import '../../domain/usecases/register_user.dart';
+import '../../domain/usecases/logout_user.dart';
 
-// Events
-abstract class AuthEvent extends Equatable {
-  @override
-  List<Object?> get props => [];
-}
+part 'auth_event.dart';
+part 'auth_state.dart';
+part 'auth_bloc.freezed.dart';
 
-class LoginRequested extends AuthEvent {
-  final String email;
-  final String password;
-
-  LoginRequested({required this.email, required this.password});
-
-  @override
-  List<Object?> get props => [email, password];
-}
-
-class RegisterRequested extends AuthEvent {
-  final String email;
-  final String password;
-
-  RegisterRequested({required this.email, required this.password});
-
-  @override
-  List<Object?> get props => [email, password];
-}
-
-class LogoutRequested extends AuthEvent {}
-
-class CheckAuthStatus extends AuthEvent {}
-
-// States
-abstract class AuthState extends Equatable {
-  @override
-  List<Object?> get props => [];
-}
-
-class AuthInitial extends AuthState {}
-
-class AuthLoading extends AuthState {}
-
-class AuthSuccess extends AuthState {
-  final bool isAuthenticated;
-
-  AuthSuccess({this.isAuthenticated = true});
-
-  @override
-  List<Object?> get props => [isAuthenticated];
-}
-
-class AuthError extends AuthState {
-  final String message;
-
-  AuthError(this.message);
-
-  @override
-  List<Object?> get props => [message];
-}
-
-// Bloc
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final AuthRepository repository;
+  final LoginUser loginUser;
+  final RegisterUser registerUser;
+  final LogoutUser logoutUser;
 
-  AuthBloc({required this.repository}) : super(AuthInitial()) {
+  AuthBloc({
+    required this.loginUser,
+    required this.registerUser,
+    required this.logoutUser,
+  }) : super(const AuthState.initial()) {
+    on<CheckAuthStatus>(_onCheckAuthStatus);
     on<LoginRequested>(_onLoginRequested);
     on<RegisterRequested>(_onRegisterRequested);
     on<LogoutRequested>(_onLogoutRequested);
-    on<CheckAuthStatus>(_onCheckAuthStatus);
-  }
-
-  Future<void> _onLoginRequested(
-    LoginRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    try {
-      emit(AuthLoading());
-      await repository.login(event.email, event.password);
-      emit(AuthSuccess(isAuthenticated: true));
-    } catch (e) {
-      emit(AuthError(e.toString()));
-    }
-  }
-
-  Future<void> _onRegisterRequested(
-    RegisterRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    try {
-      emit(AuthLoading());
-      await repository.register(event.email, event.password);
-      emit(AuthSuccess(isAuthenticated: true));
-    } catch (e) {
-      emit(AuthError(e.toString()));
-    }
-  }
-
-  Future<void> _onLogoutRequested(
-    LogoutRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    try {
-      emit(AuthLoading());
-      await repository.logout();
-      emit(AuthSuccess(isAuthenticated: false));
-    } catch (e) {
-      emit(AuthError(e.toString()));
-    }
   }
 
   Future<void> _onCheckAuthStatus(
     CheckAuthStatus event,
     Emitter<AuthState> emit,
   ) async {
-    try {
-      emit(AuthLoading());
-      final isAuthenticated = await repository.isAuthenticated();
-      emit(AuthSuccess(isAuthenticated: isAuthenticated));
-    } catch (e) {
-      emit(AuthError(e.toString()));
-    }
+    emit(const AuthState.loading());
+    
+    // TODO: Implement check auth status logic
+    // Check if user is logged in from local storage or token
+    // For now, assuming user is not authenticated
+    
+    emit(const AuthState.unauthenticated());
+  }
+
+  Future<void> _onLoginRequested(
+    LoginRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthState.loading());
+    
+    final result = await loginUser(
+      LoginParams(email: event.email, password: event.password),
+    );
+    
+    emit(result.fold(
+      (failure) => AuthState.error(failure),
+      (user) => AuthState.authenticated(user),
+    ));
+  }
+
+  Future<void> _onRegisterRequested(
+    RegisterRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthState.loading());
+    
+    final result = await registerUser(
+      RegisterParams(
+        name: event.name,
+        email: event.email,
+        password: event.password,
+      ),
+    );
+    
+    emit(result.fold(
+      (failure) => AuthState.error(failure),
+      (user) => AuthState.authenticated(user),
+    ));
+  }
+
+  Future<void> _onLogoutRequested(
+    LogoutRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthState.loading());
+    
+    final result = await logoutUser(const NoParams());
+    
+    emit(result.fold(
+      (failure) => AuthState.error(failure),
+      (_) => const AuthState.unauthenticated(),
+    ));
   }
 }

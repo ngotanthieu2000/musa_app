@@ -1,38 +1,32 @@
 // features/home/presentation/bloc/home_bloc.dart
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:equatable/equatable.dart';
-import '../../domain/usecases/get_home_features.dart';
-import '../../domain/entities/home_feature.dart';
-import '../../../../core/error/failures.dart';
+import 'package:bloc/bloc.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../domain/entities/home_data.dart';
+import '../../domain/usecases/get_home_data.dart';
+import '../../../../core/usecases/usecase.dart';
 
-part 'home_event.dart'; // Khai báo part
-part 'home_state.dart'; // Khai báo part
+part 'home_event.dart';
+part 'home_state.dart';
+part 'home_bloc.freezed.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
-  final GetHomeFeatures getHomeFeatures;
+  final GetHomeData getHomeData;
 
-  HomeBloc({required this.getHomeFeatures}) : super(HomeInitial()) {
-    on<FetchHomeFeatures>(_onFetchHomeFeatures);
+  HomeBloc({required this.getHomeData}) : super(const HomeState.initial()) {
+    on<FetchHomeData>(_onFetchHomeData);
   }
 
-  Future<void> _onFetchHomeFeatures(
-    FetchHomeFeatures event,
+  Future<void> _onFetchHomeData(
+    FetchHomeData event,
     Emitter<HomeState> emit,
   ) async {
-    emit(HomeLoading());
-    final result = await getHomeFeatures();
-    result.fold(
-      (failure) => emit(HomeError(message: _mapFailureToMessage(failure))),
-      (features) => emit(HomeLoaded(features: features)),
-    );
-  }
-
-  String _mapFailureToMessage(Failure failure) {
-    switch (failure.runtimeType) {
-      case ServerFailure:
-        return 'Server error';
-      default:
-        return 'Unexpected error';
-    }
+    emit(const HomeState.loading());
+    
+    final result = await getHomeData(const NoParams());
+    
+    emit(result.fold(
+      (failure) => HomeState.error(failure.message),
+      (homeData) => HomeState.loaded(homeData),
+    ));
   }
 }

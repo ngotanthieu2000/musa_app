@@ -1,43 +1,30 @@
- class Task {
-  final String id;
-  final String title;
-  final String description;
-  final DateTime dueDate;
-  final bool isCompleted;
-  final String priority; // 'low', 'medium', 'high'
-  final String category; // 'work', 'health', 'finance', etc.
-  final DateTime createdAt;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  Task({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.dueDate,
-    this.isCompleted = false,
-    required this.priority,
-    required this.category,
-    required this.createdAt,
-  });
+part 'task.freezed.dart';
+part 'task.g.dart';
 
-  Task copyWith({
-    String? id,
-    String? title,
+enum TaskPriority { low, medium, high }
+
+enum TaskStatus { pending, inProgress, completed, cancelled }
+
+@freezed
+class Task with _$Task {
+  const factory Task({
+    required String id,
+    required String title,
     String? description,
-    DateTime? dueDate,
-    bool? isCompleted,
-    String? priority,
+    required DateTime dueDate,
+    required TaskStatus status,
+    required TaskPriority priority,
     String? category,
+    List<String>? tags,
+    DateTime? completedAt,
     DateTime? createdAt,
-  }) {
-    return Task(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      dueDate: dueDate ?? this.dueDate,
-      isCompleted: isCompleted ?? this.isCompleted,
-      priority: priority ?? this.priority,
-      category: category ?? this.category,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
+    DateTime? updatedAt,
+    @Default(false) bool isRepeating,
+    String? repeatFrequency,
+    String? assignedTo,
+  }) = _Task;
+
+  factory Task.fromJson(Map<String, dynamic> json) => _$TaskFromJson(json);
 } 
