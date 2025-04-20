@@ -12,6 +12,7 @@ import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_usecase.dart';
 import '../../domain/usecases/refresh_token_usecase.dart';
 import '../../domain/usecases/register_usecase.dart';
+import '../../../../core/error/api_error_type.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -76,12 +77,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     
     if (!emailRegExp.hasMatch(event.email)) {
-      emit(AuthError(message: 'Invalid email'));
+      emit(AuthError(
+        message: 'Email không hợp lệ',
+        errorType: ApiErrorType.validation
+      ));
       return;
     }
     
     if (event.password.length < 6) {
-      emit(AuthError(message: 'Password must be at least 6 characters'));
+      emit(AuthError(
+        message: 'Mật khẩu phải có ít nhất 6 ký tự',
+        errorType: ApiErrorType.validation
+      ));
       return;
     }
     
@@ -95,7 +102,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
     
     result.fold(
-      (failure) => emit(AuthError(message: _mapFailureToMessage(failure))),
+      (failure) => emit(AuthError(
+        message: failure.message,
+        errorType: failure.errorType,
+        data: failure.data
+      )),
       (user) => emit(AuthAuthenticated(user: user)),
     );
   }
@@ -110,12 +121,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     
     if (!emailRegExp.hasMatch(event.email)) {
-      emit(AuthError(message: 'Invalid email'));
+      emit(AuthError(
+        message: 'Email không hợp lệ',
+        errorType: ApiErrorType.validation
+      ));
       return;
     }
     
     if (event.password.length < 6) {
-      emit(AuthError(message: 'Password must be at least 6 characters'));
+      emit(AuthError(
+        message: 'Mật khẩu phải có ít nhất 6 ký tự',
+        errorType: ApiErrorType.validation
+      ));
       return;
     }
     
@@ -128,7 +145,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
     
     result.fold(
-      (failure) => emit(AuthError(message: _mapFailureToMessage(failure))),
+      (failure) => emit(AuthError(
+        message: failure.message,
+        errorType: failure.errorType,
+        data: failure.data
+      )),
       (user) => emit(AuthAuthenticated(user: user)),
     );
   }
@@ -142,7 +163,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await _logoutUseCase(const NoParams());
     
     result.fold(
-      (failure) => emit(AuthError(message: _mapFailureToMessage(failure))),
+      (failure) => emit(AuthError(
+        message: failure.message,
+        errorType: failure.errorType,
+        data: failure.data
+      )),
       (_) => emit(AuthUnauthenticated()),
     );
   }
@@ -183,15 +208,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
   
   String _mapFailureToMessage(Failure failure) {
-    switch (failure.runtimeType) {
-      case ServerFailure:
-        return failure.message;
-      case NetworkFailure:
-        return 'No network connection. Please check your connection.';
-      case AuthFailure:
-        return failure.message;
-      default:
-        return 'An unknown error occurred.';
-    }
+    return failure.userFriendlyMessage;
   }
 }

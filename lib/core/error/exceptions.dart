@@ -1,14 +1,40 @@
 /// Base class for all exceptions in the app
+import 'api_error_type.dart';
+
 class AppException implements Exception {
   final String message;
   final String? details;
   final StackTrace? stackTrace;
+  final ApiErrorType errorType;
 
   const AppException({
     required this.message,
     this.details,
     this.stackTrace,
+    this.errorType = ApiErrorType.unknown,
   });
+
+  String get userFriendlyMessage {
+    switch (errorType) {
+      case ApiErrorType.network:
+        return 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet và thử lại.';
+      case ApiErrorType.server:
+        return 'Lỗi máy chủ. Vui lòng thử lại sau.';
+      case ApiErrorType.auth:
+        return 'Lỗi xác thực. Vui lòng đăng nhập lại.';
+      case ApiErrorType.validation:
+        return message; // Giữ nguyên thông báo gốc cho lỗi xác thực dữ liệu
+      case ApiErrorType.notFound:
+        return 'Không tìm thấy tài nguyên yêu cầu.';
+      case ApiErrorType.timeout:
+        return 'Yêu cầu đã hết thời gian. Vui lòng thử lại.';
+      case ApiErrorType.cors:
+        return 'Lỗi CORS. Máy chủ không cho phép truy cập từ ứng dụng này.';
+      case ApiErrorType.unknown:
+      default:
+        return 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
+    }
+  }
 
   @override
   String toString() {
@@ -19,20 +45,24 @@ class AppException implements Exception {
 /// Exception for server-related errors
 class ServerException extends AppException {
   final int? statusCode;
+  final dynamic data;
 
   const ServerException({
     String message = 'Đã xảy ra lỗi máy chủ',
     String? details,
     this.statusCode,
     StackTrace? stackTrace,
+    ApiErrorType errorType = ApiErrorType.server,
+    this.data,
   }) : super(
           message: message,
           details: details,
           stackTrace: stackTrace,
+          errorType: errorType,
         );
 
   @override
-  String toString() => 'ServerException: $message (statusCode: $statusCode)';
+  String toString() => 'ServerException: $message (statusCode: $statusCode, type: $errorType)';
 }
 
 /// Exception for cache-related errors
@@ -61,6 +91,7 @@ class AuthException extends AppException {
           message: message,
           details: details,
           stackTrace: stackTrace,
+          errorType: ApiErrorType.auth,
         );
 
   @override
@@ -76,14 +107,16 @@ class NetworkException extends AppException {
     String? details,
     StackTrace? stackTrace,
     required this.statusCode,
+    ApiErrorType errorType = ApiErrorType.network,
   }) : super(
           message: message,
           details: details,
           stackTrace: stackTrace,
+          errorType: errorType,
         );
 
   @override
-  String toString() => 'NetworkException: $message (statusCode: $statusCode)';
+  String toString() => 'NetworkException: $message (statusCode: $statusCode, type: $errorType)';
 }
 
 /// Exception for validation errors
@@ -99,6 +132,7 @@ class ValidationException extends AppException {
           message: message,
           details: details,
           stackTrace: stackTrace,
+          errorType: ApiErrorType.validation,
         );
 
   @override
@@ -120,6 +154,7 @@ class UnauthorizedException extends AppException {
           message: message,
           details: details,
           stackTrace: stackTrace,
+          errorType: ApiErrorType.auth,
         );
 
   @override
@@ -136,6 +171,7 @@ class TimeoutException extends AppException {
           message: message,
           details: details,
           stackTrace: stackTrace,
+          errorType: ApiErrorType.timeout,
         );
 }
 
@@ -149,5 +185,6 @@ class UnknownException extends AppException {
           message: message,
           details: details,
           stackTrace: stackTrace,
+          errorType: ApiErrorType.unknown,
         );
 } 

@@ -3,34 +3,69 @@ import '../../domain/entities/task.dart';
 class TaskModel {
   final String id;
   final String title;
-  final String? description;
-  final DateTime dueDate;
-  final TaskStatus status;
-  final TaskPriority priority;
-  final String? category;
+  final String description;
+  final bool completed;
   final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final TaskStatus? status;
+  final TaskPriority? priority;
+  final String? category;
+  final List<String>? tags;
+  final DateTime? completedAt;
+  final DateTime? dueDate;
+  final bool isRepeating;
+  final String? repeatFrequency;
+  final String? assignedTo;
   
   TaskModel({
     required this.id,
     required this.title,
-    this.description,
-    required this.dueDate,
-    required this.status,
-    required this.priority,
-    this.category,
+    this.description = '',
+    this.completed = false,
     this.createdAt,
+    this.updatedAt,
+    this.status,
+    this.priority,
+    this.category,
+    this.tags,
+    this.completedAt,
+    this.dueDate,
+    this.isRepeating = false,
+    this.repeatFrequency,
+    this.assignedTo,
   });
 
   factory TaskModel.fromJson(Map<String, dynamic> json) {
     return TaskModel(
-      id: json['id'],
-      title: json['title'],
-      description: json['description'],
-      dueDate: DateTime.parse(json['dueDate']),
-      status: _parseStatus(json['status']),
-      priority: _parsePriority(json['priority']),
-      category: json['category'],
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      id: json['id'].toString(),
+      title: json['title'] as String,
+      description: json['description'] as String? ?? '',
+      completed: json['completed'] as bool? ?? false,
+      createdAt: json['createdAt'] != null 
+        ? DateTime.parse(json['createdAt'] as String) 
+        : null,
+      updatedAt: json['updatedAt'] != null 
+        ? DateTime.parse(json['updatedAt'] as String) 
+        : null,
+      status: json['status'] != null 
+        ? _parseStatus(json['status'])
+        : null,
+      priority: json['priority'] != null 
+        ? _parsePriority(json['priority'])
+        : null,
+      category: json['category'] as String?,
+      tags: json['tags'] != null 
+        ? (json['tags'] as List<dynamic>).map((e) => e as String).toList() 
+        : null,
+      completedAt: json['completedAt'] != null 
+        ? DateTime.parse(json['completedAt'] as String) 
+        : null,
+      dueDate: json['dueDate'] != null 
+        ? DateTime.parse(json['dueDate'] as String) 
+        : null,
+      isRepeating: json['isRepeating'] as bool? ?? false,
+      repeatFrequency: json['repeatFrequency'] as String?,
+      assignedTo: json['assignedTo'] as String?,
     );
   }
   
@@ -53,7 +88,9 @@ class TaskModel {
     }
   }
   
-  static String _statusToString(TaskStatus status) {
+  static String _statusToString(TaskStatus? status) {
+    if (status == null) return 'pending';
+    
     switch (status) {
       case TaskStatus.pending: return 'pending';
       case TaskStatus.inProgress: return 'in_progress';
@@ -62,7 +99,9 @@ class TaskModel {
     }
   }
   
-  static String _priorityToString(TaskPriority priority) {
+  static String _priorityToString(TaskPriority? priority) {
+    if (priority == null) return 'medium';
+    
     switch (priority) {
       case TaskPriority.low: return 'low';
       case TaskPriority.medium: return 'medium';
@@ -75,11 +114,18 @@ class TaskModel {
       'id': id,
       'title': title,
       'description': description,
-      'dueDate': dueDate.toIso8601String(),
-      'status': _statusToString(status),
-      'priority': _priorityToString(priority),
-      'category': category,
+      'completed': completed,
       'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+      'status': status != null ? _statusToString(status) : null,
+      'priority': priority != null ? _priorityToString(priority) : null,
+      'category': category,
+      'tags': tags,
+      'completedAt': completedAt?.toIso8601String(),
+      'dueDate': dueDate?.toIso8601String(),
+      'isRepeating': isRepeating,
+      'repeatFrequency': repeatFrequency,
+      'assignedTo': assignedTo,
     };
   }
   
@@ -88,11 +134,18 @@ class TaskModel {
       id: id,
       title: title,
       description: description,
-      dueDate: dueDate,
+      completed: completed,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
       status: status,
       priority: priority,
       category: category,
-      createdAt: createdAt,
+      tags: tags,
+      completedAt: completedAt,
+      dueDate: dueDate,
+      isRepeating: isRepeating,
+      repeatFrequency: repeatFrequency,
+      assignedTo: assignedTo,
     );
   }
   
@@ -101,11 +154,18 @@ class TaskModel {
       id: task.id,
       title: task.title,
       description: task.description,
-      dueDate: task.dueDate,
+      completed: task.completed,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
       status: task.status,
       priority: task.priority,
       category: task.category,
-      createdAt: task.createdAt,
+      tags: task.tags,
+      completedAt: task.completedAt,
+      dueDate: task.dueDate,
+      isRepeating: task.isRepeating,
+      repeatFrequency: task.repeatFrequency,
+      assignedTo: task.assignedTo,
     );
   }
 } 

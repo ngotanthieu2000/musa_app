@@ -5,12 +5,49 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:musa_app/config/env_config.dart';
 import 'package:musa_app/core/error/exceptions.dart';
+import 'package:musa_app/core/error/api_error_type.dart';
 import 'package:musa_app/core/web_utils.dart' 
   if (dart.library.io) 'package:musa_app/core/io_utils.dart';
 
 // Chỉ import js_util khi chạy trên web
 import 'js_util_stub.dart'
   if (dart.library.js) 'package:musa_app/core/js_util_web.dart';
+
+class ApiError {
+  final String message;
+  final int? statusCode;
+  final ApiErrorType type;
+  final dynamic data;
+
+  ApiError({
+    required this.message,
+    this.statusCode,
+    required this.type,
+    this.data,
+  });
+
+  String get userFriendlyMessage {
+    switch (type) {
+      case ApiErrorType.network:
+        return 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet và thử lại.';
+      case ApiErrorType.server:
+        return 'Lỗi máy chủ. Vui lòng thử lại sau.';
+      case ApiErrorType.auth:
+        return 'Lỗi xác thực. Vui lòng đăng nhập lại.';
+      case ApiErrorType.validation:
+        return message; // Giữ nguyên thông báo gốc cho lỗi xác thực dữ liệu
+      case ApiErrorType.notFound:
+        return 'Không tìm thấy tài nguyên yêu cầu.';
+      case ApiErrorType.timeout:
+        return 'Yêu cầu đã hết thời gian. Vui lòng thử lại.';
+      case ApiErrorType.cors:
+        return 'Lỗi CORS. Máy chủ không cho phép truy cập từ ứng dụng này.';
+      case ApiErrorType.unknown:
+      default:
+        return 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
+    }
+  }
+}
 
 class ApiClient {
   final Dio _dio;
@@ -21,8 +58,8 @@ class ApiClient {
     // Always set baseUrl
     _dio.options.baseUrl = baseUrl;
     
-    _dio.options.connectTimeout = const Duration(seconds: 10);
-    _dio.options.receiveTimeout = const Duration(seconds: 10);
+    _dio.options.connectTimeout = const Duration(seconds: 15);
+    _dio.options.receiveTimeout = const Duration(seconds: 15);
     _dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -109,6 +146,11 @@ class ApiClient {
       return _handleResponse(response);
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw ServerException(
+        message: 'Lỗi không xác định: ${e.toString()}',
+        errorType: ApiErrorType.unknown,
+      );
     }
   }
   
@@ -126,6 +168,11 @@ class ApiClient {
       return _handleResponse(response);
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw ServerException(
+        message: 'Lỗi không xác định: ${e.toString()}',
+        errorType: ApiErrorType.unknown,
+      );
     }
   }
   
@@ -143,6 +190,11 @@ class ApiClient {
       return _handleResponse(response);
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw ServerException(
+        message: 'Lỗi không xác định: ${e.toString()}',
+        errorType: ApiErrorType.unknown,
+      );
     }
   }
   
@@ -160,6 +212,11 @@ class ApiClient {
       return _handleResponse(response);
     } on DioException catch (e) {
       throw _handleError(e);
+    } catch (e) {
+      throw ServerException(
+        message: 'Lỗi không xác định: ${e.toString()}',
+        errorType: ApiErrorType.unknown,
+      );
     }
   }
   
@@ -176,44 +233,95 @@ class ApiClient {
   }
   
   Exception _handleError(DioException e) {
+    // Xác định loại lỗi
+    ApiErrorType errorType = ApiErrorType.unknown;
+    String errorMessage = 'Đã xảy ra lỗi không xác định';
+    
     // Special handling for CORS error we detected in the interceptor
     if (e.response?.statusCode == 499) {
+      errorType = ApiErrorType.cors;
+      errorMessage = e.response?.data?['message'] ?? 'CORS Error occurred';
       return NetworkException(
         statusCode: 499,
-        message: e.response?.data?['message'] ?? 'CORS Error occurred',
+        message: errorMessage,
+        errorType: errorType,
       );
     }
     
     if (e.response != null) {
-      // Return the error message from the server if available
-      final errorMessage = e.response?.data?['message'] ?? 'Unexpected error occurred';
-      return ServerException(
-        message: errorMessage,
-        statusCode: e.response?.statusCode,
-      );
-    } else if (!kIsWeb && e.error is Object && e.error.toString().contains('SocketException')) {
-      // Network connection error - kiểm tra an toàn trên cả web và mobile
-      return const NetworkException(
-        statusCode: 0,
-        message: 'No network connection. Please check your connection.',
-      );
-    } else if (kIsWeb && e.type == DioExceptionType.connectionError) {
-      // Common CORS error in web
-      String errorMessage = 'Network connection error.';
+      final statusCode = e.response!.statusCode;
       
-      if (baseUrl.contains('localhost')) {
-        errorMessage = 'CORS Error: Your backend server needs to allow cross-origin requests from the browser.\n'
-            'You need to add appropriate CORS headers to your server response.';
+      // Phân loại lỗi theo mã trạng thái
+      if (statusCode == 400) {
+        errorType = ApiErrorType.validation;
+      } else if (statusCode == 401 || statusCode == 403) {
+        errorType = ApiErrorType.auth;
+      } else if (statusCode == 404) {
+        errorType = ApiErrorType.notFound;
+      } else if (statusCode! >= 500) {
+        errorType = ApiErrorType.server;
       }
       
+      // Trích xuất thông báo lỗi từ phản hồi
+      var data = e.response!.data;
+      if (data is Map<String, dynamic>) {
+        errorMessage = data['message'] ?? errorMessage;
+        
+        // Kiểm tra và xử lý các trường hợp lỗi cụ thể
+        if (data.containsKey('errors') && data['errors'] is Map<String, dynamic>) {
+          // Xử lý lỗi xác thực chi tiết
+          final errors = data['errors'] as Map<String, dynamic>;
+          final errorsList = <String>[];
+          
+          errors.forEach((key, value) {
+            if (value is List) {
+              errorsList.addAll(value.map((e) => e.toString()));
+            } else if (value is String) {
+              errorsList.add(value);
+            }
+          });
+          
+          if (errorsList.isNotEmpty) {
+            errorMessage = errorsList.join('. ');
+          }
+        }
+      }
+      
+      return ServerException(
+        message: errorMessage,
+        statusCode: statusCode,
+        errorType: errorType,
+        data: e.response?.data,
+      );
+    } else if (e.type == DioExceptionType.connectionTimeout ||
+               e.type == DioExceptionType.receiveTimeout ||
+               e.type == DioExceptionType.sendTimeout) {
+      errorType = ApiErrorType.timeout;
+      errorMessage = 'Yêu cầu đã hết thời gian. Vui lòng thử lại.';
+    } else if (!kIsWeb && e.error is Object && e.error.toString().contains('SocketException')) {
+      errorType = ApiErrorType.network;
+      errorMessage = 'Không có kết nối mạng. Vui lòng kiểm tra kết nối.';
+    } else if (kIsWeb && e.type == DioExceptionType.connectionError) {
+      // CORS error in web
+      errorType = ApiErrorType.cors;
+      errorMessage = 'Lỗi kết nối mạng.';
+      
+      if (baseUrl.contains('localhost')) {
+        errorMessage = 'Lỗi CORS: Máy chủ backend cần cho phép các yêu cầu cross-origin từ trình duyệt.\n'
+            'Cần thêm các header CORS thích hợp vào phản hồi từ máy chủ.';
+      }
+    }
+    
+    if (errorType == ApiErrorType.network) {
       return NetworkException(
         statusCode: 0,
         message: errorMessage,
+        errorType: errorType,
       );
     } else {
-      // Other errors
       return ServerException(
-        message: e.message ?? 'An undefined error occurred.',
+        message: errorMessage,
+        errorType: errorType,
       );
     }
   }

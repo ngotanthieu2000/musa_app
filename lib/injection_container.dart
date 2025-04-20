@@ -17,6 +17,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'core/network';
 import 'core/storage/token_storage.dart';
 import 'core/storage/secure_storage.dart';
+import 'core/utils/notification_service.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
@@ -45,6 +46,7 @@ Future<void> init() async {
   );
   sl.registerLazySingleton(() => TokenStorage(secureStorage: sl<FlutterSecureStorage>()));
   sl.registerLazySingleton(() => SecureStorage(storage: sl<FlutterSecureStorage>()));
+  sl.registerLazySingleton(() => NotificationService());
   
   // Features - Auth
   // Data sources

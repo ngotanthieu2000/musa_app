@@ -24,9 +24,15 @@ class AuthUnauthenticated extends AuthState {}
 
 class AuthError extends AuthState {
   final String message;
+  final ApiErrorType? errorType;
+  final dynamic data;
   
-  const AuthError({required this.message});
+  const AuthError({
+    required this.message,
+    this.errorType,
+    this.data,
+  });
   
   @override
-  List<Object> get props => [message];
+  List<Object?> get props => [message, errorType, data];
 } 

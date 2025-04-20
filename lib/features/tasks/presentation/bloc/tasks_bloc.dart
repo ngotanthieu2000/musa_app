@@ -4,6 +4,8 @@ import 'package:dartz/dartz.dart' hide Task;
 import '../../domain/entities/task.dart';
 import '../../domain/repositories/task_repository.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/network';
+import '../../../../core/error/api_error_type.dart';
 
 // Events
 abstract class TasksEvent extends Equatable {
@@ -69,13 +71,66 @@ class TasksLoaded extends TasksState {
   List<Object?> get props => [tasks];
 }
 
-class TasksError extends TasksState {
+class TaskActionSuccess extends TasksState {
+  final List<Task> tasks;
   final String message;
+  final ActionType actionType;
 
-  TasksError(this.message);
+  TaskActionSuccess({
+    required this.tasks,
+    required this.message,
+    required this.actionType,
+  });
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [tasks, message, actionType];
+}
+
+enum ActionType {
+  create,
+  update,
+  delete,
+  toggle
+}
+
+class TasksError extends TasksState {
+  final String message;
+  final ApiErrorType? errorType;
+  final dynamic data;
+
+  TasksError({
+    required this.message,
+    this.errorType,
+    this.data,
+  });
+
+  @override
+  List<Object?> get props => [message, errorType, data];
+  
+  // Helper method to get user-friendly message
+  String get userFriendlyMessage {
+    if (errorType == null) return message;
+    
+    switch (errorType) {
+      case ApiErrorType.network:
+        return 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet và thử lại.';
+      case ApiErrorType.server:
+        return 'Lỗi máy chủ. Vui lòng thử lại sau.';
+      case ApiErrorType.auth:
+        return 'Lỗi xác thực. Vui lòng đăng nhập lại.';
+      case ApiErrorType.validation:
+        return message; // Giữ nguyên thông báo gốc cho lỗi xác thực dữ liệu
+      case ApiErrorType.notFound:
+        return 'Không tìm thấy công việc yêu cầu.';
+      case ApiErrorType.timeout:
+        return 'Yêu cầu đã hết thời gian. Vui lòng thử lại.';
+      case ApiErrorType.cors:
+        return 'Lỗi CORS. Máy chủ không cho phép truy cập từ ứng dụng này.';
+      case ApiErrorType.unknown:
+      default:
+        return message;
+    }
+  }
 }
 
 // Bloc
@@ -98,7 +153,11 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     final result = await repository.getTasks();
     
     emit(result.fold(
-      (failure) => TasksError(failure.message),
+      (failure) => TasksError(
+        message: failure.message,
+        errorType: failure.errorType,
+        data: failure.data,
+      ),
       (tasks) => TasksLoaded(tasks),
     ));
   }
@@ -107,6 +166,15 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     AddTask event,
     Emitter<TasksState> emit,
   ) async {
+    // Validate input
+    if (event.title.trim().isEmpty) {
+      emit(TasksError(
+        message: 'Tiêu đề công việc không được để trống',
+        errorType: ApiErrorType.validation,
+      ));
+      return;
+    }
+    
     emit(TasksLoading());
     
     final createResult = await repository.createTask(
@@ -115,12 +183,24 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     );
     
     await createResult.fold(
-      (failure) async => emit(TasksError(failure.message)),
+      (failure) async => emit(TasksError(
+        message: failure.message,
+        errorType: failure.errorType,
+        data: failure.data,
+      )),
       (_) async {
         final tasksResult = await repository.getTasks();
         emit(tasksResult.fold(
-          (failure) => TasksError(failure.message),
-          (tasks) => TasksLoaded(tasks),
+          (failure) => TasksError(
+            message: failure.message,
+            errorType: failure.errorType,
+            data: failure.data,
+          ),
+          (tasks) => TaskActionSuccess(
+            tasks: tasks,
+            message: 'Đã thêm công việc mới thành công',
+            actionType: ActionType.create,
+          ),
         ));
       },
     );
@@ -130,17 +210,38 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     UpdateTask event,
     Emitter<TasksState> emit,
   ) async {
+    // Validate input
+    if (event.task.title.trim().isEmpty) {
+      emit(TasksError(
+        message: 'Tiêu đề công việc không được để trống',
+        errorType: ApiErrorType.validation,
+      ));
+      return;
+    }
+    
     emit(TasksLoading());
     
     final updateResult = await repository.updateTask(event.task);
     
     await updateResult.fold(
-      (failure) async => emit(TasksError(failure.message)),
+      (failure) async => emit(TasksError(
+        message: failure.message,
+        errorType: failure.errorType,
+        data: failure.data,
+      )),
       (_) async {
         final tasksResult = await repository.getTasks();
         emit(tasksResult.fold(
-          (failure) => TasksError(failure.message),
-          (tasks) => TasksLoaded(tasks),
+          (failure) => TasksError(
+            message: failure.message,
+            errorType: failure.errorType,
+            data: failure.data,
+          ),
+          (tasks) => TaskActionSuccess(
+            tasks: tasks,
+            message: 'Đã cập nhật công việc thành công',
+            actionType: ActionType.update,
+          ),
         ));
       },
     );
@@ -155,12 +256,24 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     final deleteResult = await repository.deleteTask(event.taskId);
     
     await deleteResult.fold(
-      (failure) async => emit(TasksError(failure.message)),
+      (failure) async => emit(TasksError(
+        message: failure.message,
+        errorType: failure.errorType,
+        data: failure.data,
+      )),
       (_) async {
         final tasksResult = await repository.getTasks();
         emit(tasksResult.fold(
-          (failure) => TasksError(failure.message),
-          (tasks) => TasksLoaded(tasks),
+          (failure) => TasksError(
+            message: failure.message,
+            errorType: failure.errorType,
+            data: failure.data,
+          ),
+          (tasks) => TaskActionSuccess(
+            tasks: tasks,
+            message: 'Đã xóa công việc thành công',
+            actionType: ActionType.delete,
+          ),
         ));
       },
     );
@@ -175,12 +288,24 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     final toggleResult = await repository.toggleTaskCompletion(event.taskId);
     
     await toggleResult.fold(
-      (failure) async => emit(TasksError(failure.message)),
+      (failure) async => emit(TasksError(
+        message: failure.message,
+        errorType: failure.errorType,
+        data: failure.data,
+      )),
       (_) async {
         final tasksResult = await repository.getTasks();
         emit(tasksResult.fold(
-          (failure) => TasksError(failure.message),
-          (tasks) => TasksLoaded(tasks),
+          (failure) => TasksError(
+            message: failure.message,
+            errorType: failure.errorType,
+            data: failure.data,
+          ),
+          (tasks) => TaskActionSuccess(
+            tasks: tasks,
+            message: 'Đã cập nhật trạng thái công việc',
+            actionType: ActionType.toggle,
+          ),
         ));
       },
     );

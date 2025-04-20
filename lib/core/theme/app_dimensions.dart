@@ -10,6 +10,9 @@ class AppDimensions {
   static const double spacingXXL = 48.0;
   static const double spacingXXXL = 64.0;
   
+  /// Screen padding
+  static const double screenPadding = 16.0;
+  
   /// Radius
   static const double radiusXS = 4.0;
   static const double radiusS = 8.0;

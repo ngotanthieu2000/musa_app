@@ -6,6 +6,10 @@ import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/app_bar.dart';
+import '../../../../core/utils/bloc_helper.dart';
+import '../../../../core/utils/notification_service.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/error/api_error_type.dart';
 import '../bloc/auth_bloc.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -82,21 +86,14 @@ class _RegisterPageState extends State<RegisterPage> {
       // Ẩn bàn phím
       FocusScope.of(context).unfocus();
       
-      // Hiển thị thông báo đang xử lý
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Creating your account...'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-      
-      // Đăng ký tài khoản
+      // Lấy dữ liệu từ form
       final name = _nameController.text.trim();
       final email = _emailController.text.trim();
       final password = _passwordController.text;
       
       debugPrint('Registering user: $name, $email');
       
+      // Đăng ký tài khoản
       context.read<AuthBloc>().add(
         AuthRegisterEvent(
           name: name,
@@ -106,11 +103,9 @@ class _RegisterPageState extends State<RegisterPage> {
       );
     } else {
       // Hiển thị thông báo lỗi nếu validate không thành công
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fix the errors above before continuing'),
-          backgroundColor: Colors.orange,
-        ),
+      NotificationService().showErrorNotification(
+        context,
+        message: 'Vui lòng sửa các lỗi trước khi tiếp tục',
       );
     }
   }
@@ -124,34 +119,45 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthAuthenticated) {
-            // Đăng ký thành công và chuyển đến trang chính
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Account created successfully! Redirecting to home page...'),
-                backgroundColor: Colors.green,
-              ),
+          if (state is AuthLoading) {
+            // Hiển thị dialog loading
+            BlocHelper.showLoading(context, message: 'Đang tạo tài khoản...');
+          } else if (state is AuthAuthenticated) {
+            // Ẩn dialog loading nếu có
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+            
+            // Hiển thị thông báo đăng nhập thành công
+            NotificationService().showSuccessNotification(
+              context,
+              message: 'Tài khoản đã được tạo thành công! Đang chuyển hướng...',
             );
+            
+            // Chuyển đến trang chính
             Future.delayed(const Duration(milliseconds: 500), () {
-              GoRouter.of(context).go('/');
+              context.go('/');
             });
           } else if (state is AuthError) {
-            // Hiển thị lỗi chi tiết
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Registration failed', style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text(state.message),
-                    const Text('Please try again with different information', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 5),
+            // Ẩn dialog loading nếu có
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+            
+            // Hiển thị thông báo lỗi
+            BlocHelper.handleError(
+              context, 
+              UnexpectedFailure(
+                message: state.message,
+                errorType: state.errorType ?? ApiErrorType.unknown,
               ),
+              onRetry: state.errorType == ApiErrorType.network ? _register : null,
             );
+          } else if (state is AuthUnauthenticated) {
+            // Ẩn dialog loading nếu có
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
           }
         },
         builder: (context, state) {

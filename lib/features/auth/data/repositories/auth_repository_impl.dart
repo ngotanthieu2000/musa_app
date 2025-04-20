@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/exceptions.dart';
+import '../../../../core/error/api_error_type.dart';
 import '../../../../core/network';
 import '../../../../core/storage/secure_storage.dart';
 import '../../domain/entities/auth_tokens.dart';
@@ -31,7 +32,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String? name,
   }) async {
     try {
-      final response = await _apiClient.post(
+      final registerResponse = await _apiClient.post(
         '/auth/register',
         data: {
           'email': email,
@@ -40,22 +41,61 @@ class AuthRepositoryImpl implements AuthRepository {
         },
       );
       
-      // Save tokens
-      final tokensModel = AuthTokensModel.fromJson(response['tokens']);
-      await _saveTokens(tokensModel);
+      // Kiểm tra nếu đăng ký thành công nhưng không có thông tin token và user
+      if (registerResponse is Map<String, dynamic> && 
+          registerResponse.containsKey('message') && 
+          registerResponse['message'] == 'Registration successful') {
+        
+        // Đăng ký thành công, thực hiện đăng nhập để lấy token và user info
+        return login(email: email, password: password);
+      }
       
-      // Set auth token for future requests
-      _apiClient.setAuthToken(tokensModel.accessToken);
+      // Trường hợp response chứa cả token và user info
+      if (registerResponse is Map<String, dynamic> && 
+          registerResponse.containsKey('tokens') && 
+          registerResponse.containsKey('user')) {
+        
+        // Save tokens
+        final tokensModel = AuthTokensModel.fromJson(registerResponse['tokens']);
+        await _saveTokens(tokensModel);
+        
+        // Set auth token for future requests
+        _apiClient.setAuthToken(tokensModel.accessToken);
+        
+        // Return user
+        final userModel = UserModel.fromJson(registerResponse['user']);
+        return Right(userModel);
+      }
       
-      // Return user
-      final userModel = UserModel.fromJson(response['user']);
-      return Right(userModel);
+      // Response không đúng định dạng
+      return Left(ServerFailure(
+        message: 'Invalid server response format',
+        errorType: ApiErrorType.server
+      ));
     } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
+      return Left(ServerFailure(
+        message: e.message, 
+        statusCode: e.statusCode,
+        errorType: e.errorType,
+        data: e.data
+      ));
     } on NetworkException catch (e) {
-      return Left(NetworkFailure(message: e.message));
+      return Left(NetworkFailure(
+        message: e.message,
+        errorType: e.errorType,
+        data: e.details
+      ));
+    } on ValidationException catch (e) {
+      return Left(ValidationFailure(
+        message: e.message,
+        errors: e.errors,
+        data: e.details
+      ));
     } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(UnexpectedFailure(
+        message: e.toString(),
+        data: e
+      ));
     }
   }
   
@@ -87,11 +127,17 @@ class AuthRepositoryImpl implements AuthRepository {
           tokensData = response;
         } else {
           print('Invalid response format. Missing tokens data.');
-          return Left(ServerFailure(message: 'Invalid response format. Missing tokens data.'));
+          return Left(ServerFailure(
+            message: 'Invalid response format. Missing tokens data.',
+            errorType: ApiErrorType.server
+          ));
         }
       } else {
         print('Invalid response type: ${response.runtimeType}');
-        return Left(ServerFailure(message: 'Invalid response type'));
+        return Left(ServerFailure(
+          message: 'Invalid response type',
+          errorType: ApiErrorType.server
+        ));
       }
       
       print('Extracted tokens data: $tokensData');
@@ -137,13 +183,37 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     } on ServerException catch (e) {
       print('ServerException during login: ${e.message}');
-      return Left(ServerFailure(message: e.message));
+      return Left(ServerFailure(
+        message: e.message, 
+        statusCode: e.statusCode,
+        errorType: e.errorType,
+        data: e.data
+      ));
     } on NetworkException catch (e) {
       print('NetworkException during login: ${e.message}');
-      return Left(NetworkFailure(message: e.message));
+      return Left(NetworkFailure(
+        message: e.message,
+        errorType: e.errorType,
+        data: e.details
+      ));
+    } on ValidationException catch (e) {
+      return Left(ValidationFailure(
+        message: e.message,
+        errors: e.errors,
+        data: e.details
+      ));
+    } on AuthException catch (e) {
+      return Left(AuthFailure(
+        message: e.message,
+        errorType: e.errorType,
+        data: e.details
+      ));
     } catch (e) {
       print('Unexpected error during login: $e');
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(UnexpectedFailure(
+        message: e.toString(),
+        data: e
+      ));
     }
   }
   
@@ -160,11 +230,23 @@ class AuthRepositoryImpl implements AuthRepository {
       
       return const Right(null);
     } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
+      return Left(ServerFailure(
+        message: e.message, 
+        statusCode: e.statusCode,
+        errorType: e.errorType,
+        data: e.data
+      ));
     } on NetworkException catch (e) {
-      return Left(NetworkFailure(message: e.message));
+      return Left(NetworkFailure(
+        message: e.message,
+        errorType: e.errorType,
+        data: e.details
+      ));
     } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(UnexpectedFailure(
+        message: e.toString(),
+        data: e
+      ));
     }
   }
   
@@ -189,11 +271,29 @@ class AuthRepositoryImpl implements AuthRepository {
       
       return Right(tokensModel);
     } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
+      return Left(ServerFailure(
+        message: e.message, 
+        statusCode: e.statusCode,
+        errorType: e.errorType,
+        data: e.data
+      ));
     } on NetworkException catch (e) {
-      return Left(NetworkFailure(message: e.message));
+      return Left(NetworkFailure(
+        message: e.message,
+        errorType: e.errorType,
+        data: e.details
+      ));
+    } on AuthException catch (e) {
+      return Left(AuthFailure(
+        message: e.message,
+        errorType: e.errorType,
+        data: e.details
+      ));
     } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(UnexpectedFailure(
+        message: e.toString(),
+        data: e
+      ));
     }
   }
   
@@ -203,7 +303,10 @@ class AuthRepositoryImpl implements AuthRepository {
       // Check if we have a token
       final token = await _secureStorage.read(_keyAccessToken);
       if (token == null) {
-        return Left(AuthFailure(message: 'User not authenticated'));
+        return Left(AuthFailure(
+          message: 'User not authenticated',
+          errorType: ApiErrorType.auth
+        ));
       }
       
       // Set auth token
@@ -215,11 +318,29 @@ class AuthRepositoryImpl implements AuthRepository {
       final userModel = UserModel.fromJson(response['user']);
       return Right(userModel);
     } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
+      return Left(ServerFailure(
+        message: e.message, 
+        statusCode: e.statusCode,
+        errorType: e.errorType,
+        data: e.data
+      ));
     } on NetworkException catch (e) {
-      return Left(NetworkFailure(message: e.message));
+      return Left(NetworkFailure(
+        message: e.message,
+        errorType: e.errorType,
+        data: e.details
+      ));
+    } on AuthException catch (e) {
+      return Left(AuthFailure(
+        message: e.message,
+        errorType: e.errorType,
+        data: e.details
+      ));
     } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(UnexpectedFailure(
+        message: e.toString(),
+        data: e
+      ));
     }
   }
   
