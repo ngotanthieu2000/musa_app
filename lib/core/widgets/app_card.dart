@@ -4,84 +4,81 @@ import '../theme/app_dimensions.dart';
 
 class AppCard extends StatelessWidget {
   final Widget child;
+  final EdgeInsetsGeometry? padding;
   final Color? backgroundColor;
   final double? elevation;
   final BorderRadius? borderRadius;
-  final EdgeInsets? padding;
-  final EdgeInsets? margin;
-  final double? width;
-  final double? height;
+  final Border? border;
   final Gradient? gradient;
-  final BoxBorder? border;
   final VoidCallback? onTap;
-  final bool hasShadow;
+  final bool isClickable;
+  final EdgeInsetsGeometry? margin;
   
   const AppCard({
-    super.key,
+    Key? key,
     required this.child,
+    this.padding,
     this.backgroundColor,
     this.elevation,
     this.borderRadius,
-    this.padding,
-    this.margin,
-    this.width,
-    this.height,
-    this.gradient,
     this.border,
+    this.gradient,
     this.onTap,
-    this.hasShadow = true,
-  });
-
+    this.isClickable = false,
+    this.margin,
+  }) : super(key: key);
+  
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
     
-    final cardBorderRadius = borderRadius ?? 
-        BorderRadius.circular(AppDimensions.cardBorderRadius);
-        
-    final cardShadow = hasShadow ? [
-      BoxShadow(
-        color: isDarkMode 
-            ? AppColors.shadowDark
-            : AppColors.shadowLight,
-        blurRadius: elevation ?? AppDimensions.cardElevation,
-        offset: const Offset(0, 2),
-        spreadRadius: 0,
-      ),
-    ] : null;
+    final effectivePadding = padding ?? const EdgeInsets.all(AppDimensions.spacingM);
+    final effectiveBorderRadius = borderRadius ?? BorderRadius.circular(AppDimensions.radiusL);
+    final effectiveElevation = elevation ?? AppDimensions.cardElevation;
+    final effectiveMargin = margin ?? EdgeInsets.zero;
     
-    final Widget cardContent = Container(
-      width: width,
-      height: height,
-      padding: padding ?? const EdgeInsets.all(AppDimensions.spacingL),
+    // Determine the shadow color based on the theme mode
+    final shadowColor = isDarkMode 
+        ? AppColors.shadowDark
+        : AppColors.shadowLight;
+    
+    Widget cardContent = Container(
       decoration: BoxDecoration(
         color: backgroundColor ?? (isDarkMode ? AppColors.cardDark : AppColors.cardLight),
-        borderRadius: cardBorderRadius,
-        boxShadow: cardShadow,
-        gradient: gradient,
+        borderRadius: effectiveBorderRadius,
         border: border,
+        gradient: gradient,
+        boxShadow: effectiveElevation > 0 
+            ? [
+                BoxShadow(
+                  color: shadowColor.withOpacity(0.2),
+                  blurRadius: effectiveElevation * 2,
+                  offset: Offset(0, effectiveElevation),
+                ),
+              ]
+            : null,
       ),
-      child: child,
+      child: Padding(
+        padding: effectivePadding,
+        child: child,
+      ),
     );
     
-    if (onTap != null) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: cardBorderRadius,
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: cardBorderRadius,
-          ),
-          child: Padding(
-            padding: margin ?? const EdgeInsets.all(AppDimensions.spacingS),
-            child: cardContent,
-          ),
+    if (onTap != null || isClickable) {
+      return Padding(
+        padding: effectiveMargin,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: effectiveBorderRadius,
+          child: cardContent,
         ),
       );
     }
     
     return Padding(
-      padding: margin ?? const EdgeInsets.all(AppDimensions.spacingS),
+      padding: effectiveMargin,
       child: cardContent,
     );
   }

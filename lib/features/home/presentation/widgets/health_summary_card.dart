@@ -238,7 +238,7 @@ class HealthSummaryCard extends StatelessWidget {
                 ? AppColors.textSecondaryDark 
                 : AppColors.textSecondaryLight,
           ),
-        ),
+      ),
       ],
     );
   }

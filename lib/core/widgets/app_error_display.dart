@@ -1,87 +1,73 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_dimensions.dart';
-import 'app_button.dart';
 
 class AppErrorDisplay extends StatelessWidget {
   final String message;
   final String? details;
-  final VoidCallback? onRetry;
-  final String retryText;
+  final IconData? icon;
   final bool showIcon;
-  final TextAlign textAlign;
+  final VoidCallback? onRetry;
+  final String? retryText;
   
   const AppErrorDisplay({
-    super.key,
+    Key? key,
     required this.message,
     this.details,
+    this.icon = Icons.error_outline,
+    this.showIcon = true,
     this.onRetry,
     this.retryText = 'Thử lại',
-    this.showIcon = true,
-    this.textAlign = TextAlign.center,
-  });
-
+  }) : super(key: key);
+  
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final errorColor = isDarkMode ? AppColors.errorDark : AppColors.errorLight;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     
     return Container(
-      padding: const EdgeInsets.all(AppDimensions.spacingL),
+      padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: errorColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusM),
-        border: Border.all(
-          color: errorColor.withOpacity(0.3),
-          width: 1,
-        ),
+        color: colorScheme.errorContainer.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (showIcon) ...[
             Icon(
-              Icons.error_outline,
-              color: errorColor,
-              size: AppDimensions.iconSizeL,
+              icon,
+              color: colorScheme.error,
+              size: 32,
             ),
-            const SizedBox(height: AppDimensions.spacingM),
+            const SizedBox(height: 12),
           ],
-          
-          SelectableText.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: message,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: errorColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (details != null) ...[
-                  const TextSpan(text: '\n\n'),
-                  TextSpan(
-                    text: details,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: isDarkMode 
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ],
-              ],
+          Text(
+            message,
+            style: textTheme.titleMedium?.copyWith(
+              color: colorScheme.error,
+              fontWeight: FontWeight.w600,
             ),
-            textAlign: textAlign,
+            textAlign: TextAlign.center,
           ),
-          
+          if (details != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              details!,
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onErrorContainer,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
           if (onRetry != null) ...[
-            const SizedBox(height: AppDimensions.spacingL),
-            AppButton(
-              text: retryText,
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
               onPressed: onRetry,
-              type: AppButtonType.outlined,
-              size: AppButtonSize.medium,
-              icon: Icons.refresh,
+              icon: const Icon(Icons.refresh),
+              label: Text(retryText!),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
+              ),
             ),
           ],
         ],

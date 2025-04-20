@@ -5,7 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../../../../core/widgets/app_error_display.dart';
+import '../../../../core/widgets/app_bar.dart';
 import '../bloc/auth_bloc.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -16,14 +16,14 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  bool _isPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
-  
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -32,258 +32,235 @@ class _RegisterPageState extends State<RegisterPage> {
     _confirmPasswordController.dispose();
     super.dispose();
   }
-  
-  void _togglePasswordVisibility() {
-    setState(() {
-      _isPasswordVisible = !_isPasswordVisible;
-    });
+
+  String? _validateName(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Name is required';
+    }
+    return null;
   }
-  
-  void _toggleConfirmPasswordVisibility() {
-    setState(() {
-      _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-    });
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Email is required';
+    }
+    
+    final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegExp.hasMatch(value)) {
+      return 'Enter a valid email address';
+    }
+    
+    return null;
   }
-  
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required';
+    }
+    
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please confirm your password';
+    }
+    
+    if (value != _passwordController.text) {
+      return 'Passwords do not match';
+    }
+    
+    return null;
+  }
+
   void _register() {
     if (_formKey.currentState?.validate() ?? false) {
-      if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mật khẩu không khớp'),
-            backgroundColor: AppColors.errorLight,
-          ),
-        );
-        return;
-      }
+      // Ẩn bàn phím
+      FocusScope.of(context).unfocus();
+      
+      // Hiển thị thông báo đang xử lý
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Creating your account...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      
+      // Đăng ký tài khoản
+      final name = _nameController.text.trim();
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+      
+      debugPrint('Registering user: $name, $email');
       
       context.read<AuthBloc>().add(
-        AuthEvent.registerRequested(
-          name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
+        AuthRegisterEvent(
+          name: name,
+          email: email,
+          password: password,
+        ),
+      );
+    } else {
+      // Hiển thị thông báo lỗi nếu validate không thành công
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fix the errors above before continuing'),
+          backgroundColor: Colors.orange,
         ),
       );
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Đăng ký'),
-        centerTitle: true,
+      appBar: MusaAppBar(
+        title: 'Create Account',
+        routeOnBack: '/login',
       ),
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
-          state.maybeWhen(
-            authenticated: (_) {
-              context.go('/');
-            },
-            orElse: () {},
-          );
+          if (state is AuthAuthenticated) {
+            // Đăng ký thành công và chuyển đến trang chính
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Account created successfully! Redirecting to home page...'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Future.delayed(const Duration(milliseconds: 500), () {
+              GoRouter.of(context).go('/');
+            });
+          } else if (state is AuthError) {
+            // Hiển thị lỗi chi tiết
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Registration failed', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(state.message),
+                    const Text('Please try again with different information', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
         },
         builder: (context, state) {
           return SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppDimensions.spacingXL),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Join Us Today',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Create an account to get started',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 32),
+                    AppTextField(
+                      controller: _nameController,
+                      labelText: 'Full Name',
+                      validator: _validateName,
+                      prefixIcon: const Icon(Icons.person_outline),
+                    ),
+                    const SizedBox(height: 16),
+                    AppTextField(
+                      controller: _emailController,
+                      labelText: 'Email',
+                      validator: _validateEmail,
+                      keyboardType: TextInputType.emailAddress,
+                      prefixIcon: const Icon(Icons.email_outlined),
+                    ),
+                    const SizedBox(height: 16),
+                    AppTextField(
+                      controller: _passwordController,
+                      labelText: 'Password',
+                      validator: _validatePassword,
+                      obscureText: _obscurePassword,
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    AppTextField(
+                      controller: _confirmPasswordController,
+                      labelText: 'Confirm Password',
+                      validator: _validateConfirmPassword,
+                      obscureText: _obscureConfirmPassword,
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    AppButton(
+                      text: 'Create Account',
+                      isLoading: state is AuthLoading,
+                      onPressed: _register,
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Tiêu đề
-                        Text(
-                          'Tạo tài khoản mới',
-                          style: Theme.of(context).textTheme.headlineMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: AppDimensions.spacingS),
-                        Text(
-                          'Vui lòng điền đầy đủ thông tin để đăng ký',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: isDarkMode
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: AppDimensions.spacingXXL),
-                        
-                        // Form đăng ký
-                        AppTextField(
-                          controller: _nameController,
-                          label: 'Họ và tên',
-                          hint: 'Nhập họ và tên của bạn',
-                          textCapitalization: TextCapitalization.words,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: const Icon(Icons.person_outline),
-                        ),
-                        const SizedBox(height: AppDimensions.spacingL),
-                        AppTextField(
-                          controller: _emailController,
-                          label: 'Email',
-                          hint: 'Nhập email của bạn',
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: const Icon(Icons.email_outlined),
-                        ),
-                        const SizedBox(height: AppDimensions.spacingL),
-                        AppTextField(
-                          controller: _passwordController,
-                          label: 'Mật khẩu',
-                          hint: 'Nhập mật khẩu của bạn',
-                          obscureText: !_isPasswordVisible,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: const Icon(Icons.lock_outlined),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _isPasswordVisible
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                            onPressed: _togglePasswordVisibility,
-                          ),
-                        ),
-                        const SizedBox(height: AppDimensions.spacingL),
-                        AppTextField(
-                          controller: _confirmPasswordController,
-                          label: 'Xác nhận mật khẩu',
-                          hint: 'Nhập lại mật khẩu của bạn',
-                          obscureText: !_isConfirmPasswordVisible,
-                          textInputAction: TextInputAction.done,
-                          prefixIcon: const Icon(Icons.lock_outlined),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _isConfirmPasswordVisible
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                            onPressed: _toggleConfirmPasswordVisibility,
-                          ),
-                        ),
-                        const SizedBox(height: AppDimensions.spacingXL),
-                        
-                        // Hiển thị lỗi nếu có
-                        state.maybeWhen(
-                          error: (failure) => Column(
-                            children: [
-                              AppErrorDisplay(
-                                message: failure.message,
-                                details: failure.details,
-                                showIcon: false,
-                              ),
-                              const SizedBox(height: AppDimensions.spacingL),
-                            ],
-                          ),
-                          orElse: () => const SizedBox.shrink(),
-                        ),
-                        
-                        // Nút đăng ký
-                        AppButton(
-                          text: 'Đăng ký',
-                          isFullWidth: true,
-                          isLoading: state is AuthLoading,
-                          onPressed: _register,
-                          type: AppButtonType.primary,
-                          size: AppButtonSize.large,
-                        ),
-                        const SizedBox(height: AppDimensions.spacingL),
-                        
-                        // Hoặc đăng ký với
-                        const Row(
-                          children: [
-                            Expanded(child: Divider()),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: AppDimensions.spacingM,
-                              ),
-                              child: Text('Hoặc đăng ký với'),
-                            ),
-                            Expanded(child: Divider()),
-                          ],
-                        ),
-                        const SizedBox(height: AppDimensions.spacingL),
-                        
-                        // Đăng ký với mạng xã hội
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildSocialButton(
-                              icon: Icons.g_mobiledata,
-                              onPressed: () {
-                                // TODO: Implement Google Sign Up
-                              },
-                            ),
-                            const SizedBox(width: AppDimensions.spacingL),
-                            _buildSocialButton(
-                              icon: Icons.facebook,
-                              onPressed: () {
-                                // TODO: Implement Facebook Sign Up
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppDimensions.spacingXXL),
-                        
-                        // Đăng nhập
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Đã có tài khoản?',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                context.go('/login');
-                              },
-                              child: const Text('Đăng nhập'),
-                            ),
-                          ],
+                        const Text('Already have an account?'),
+                        TextButton(
+                          onPressed: () {
+                            context.go('/login');
+                          },
+                          child: const Text('Sign In'),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
           );
         },
-      ),
-    );
-  }
-  
-  Widget _buildSocialButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-  }) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(AppDimensions.radiusL),
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
-          border: Border.all(
-            color: isDarkMode ? AppColors.dividerDark : AppColors.dividerLight,
-            width: 1,
-          ),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusL),
-        ),
-        child: Icon(
-          icon,
-          size: 30,
-          color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-        ),
       ),
     );
   }

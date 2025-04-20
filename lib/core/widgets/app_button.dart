@@ -1,255 +1,162 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_dimensions.dart';
 
-enum AppButtonType { primary, secondary, outlined, text }
-enum AppButtonSize { small, medium, large }
+enum AppButtonType {
+  primary,
+  secondary,
+  tertiary,
+  text,
+}
 
 class AppButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
   final AppButtonType type;
-  final AppButtonSize size;
-  final bool isLoading;
   final bool isFullWidth;
-  final IconData? icon;
-  final bool iconOnly;
+  final bool isLoading;
+  final Widget? icon;
+  final EdgeInsetsGeometry? padding;
   final double? iconSize;
-  final EdgeInsets? padding;
-  final BorderRadius? borderRadius;
-
+  
   const AppButton({
-    super.key,
+    Key? key,
     required this.text,
     this.onPressed,
     this.type = AppButtonType.primary,
-    this.size = AppButtonSize.medium,
-    this.isLoading = false,
     this.isFullWidth = false,
+    this.isLoading = false,
     this.icon,
-    this.iconOnly = false,
-    this.iconSize,
     this.padding,
-    this.borderRadius,
-  });
-
+    this.iconSize,
+  }) : super(key: key);
+  
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDarkMode = theme.brightness == Brightness.dark;
     
-    // Get size based on AppButtonSize
-    double buttonHeight;
-    double fontSize;
-    double defaultIconSize;
-    
-    switch (size) {
-      case AppButtonSize.small:
-        buttonHeight = AppDimensions.buttonHeightS;
-        fontSize = 14;
-        defaultIconSize = AppDimensions.iconSizeS;
-        break;
-      case AppButtonSize.medium:
-        buttonHeight = AppDimensions.buttonHeightM;
-        fontSize = 16;
-        defaultIconSize = AppDimensions.iconSizeM;
-        break;
-      case AppButtonSize.large:
-        buttonHeight = AppDimensions.buttonHeightL;
-        fontSize = 18;
-        defaultIconSize = AppDimensions.iconSizeM;
-        break;
-    }
-    
-    // Define style based on button type
+    // Choose button style based on type
     ButtonStyle buttonStyle;
-    
     switch (type) {
       case AppButtonType.primary:
         buttonStyle = ElevatedButton.styleFrom(
-          backgroundColor: isDarkMode ? AppColors.primaryDark : AppColors.primaryLight,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: isDarkMode 
-              ? AppColors.primaryDark.withOpacity(0.5) 
-              : AppColors.primaryLight.withOpacity(0.5),
-          disabledForegroundColor: Colors.white.withOpacity(0.5),
-          textStyle: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: fontSize,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-          padding: padding ?? _getPadding(),
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           shape: RoundedRectangleBorder(
-            borderRadius: borderRadius ?? BorderRadius.circular(AppDimensions.radiusM),
+            borderRadius: BorderRadius.circular(12),
           ),
-          elevation: 0,
-          minimumSize: Size(0, buttonHeight),
+          padding: padding ?? const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          textStyle: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         );
         break;
       case AppButtonType.secondary:
         buttonStyle = ElevatedButton.styleFrom(
-          backgroundColor: isDarkMode ? AppColors.secondaryDark : AppColors.secondaryLight,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: isDarkMode 
-              ? AppColors.secondaryDark.withOpacity(0.5) 
-              : AppColors.secondaryLight.withOpacity(0.5),
-          disabledForegroundColor: Colors.white.withOpacity(0.5),
-          textStyle: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: fontSize,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-          padding: padding ?? _getPadding(),
+          backgroundColor: colorScheme.secondary,
+          foregroundColor: colorScheme.onSecondary,
           shape: RoundedRectangleBorder(
-            borderRadius: borderRadius ?? BorderRadius.circular(AppDimensions.radiusM),
+            borderRadius: BorderRadius.circular(12),
           ),
-          elevation: 0,
-          minimumSize: Size(0, buttonHeight),
+          padding: padding ?? const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          textStyle: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         );
         break;
-      case AppButtonType.outlined:
+      case AppButtonType.tertiary:
         buttonStyle = OutlinedButton.styleFrom(
-          foregroundColor: isDarkMode ? AppColors.primaryDark : AppColors.primaryLight,
-          disabledForegroundColor: isDarkMode 
-              ? AppColors.primaryDark.withOpacity(0.5) 
-              : AppColors.primaryLight.withOpacity(0.5),
-          textStyle: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: fontSize,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-          padding: padding ?? _getPadding(),
-          side: BorderSide(
-            color: isDarkMode ? AppColors.primaryDark : AppColors.primaryLight,
-            width: 1.5,
-          ),
+          foregroundColor: colorScheme.primary,
+          side: BorderSide(color: colorScheme.primary),
           shape: RoundedRectangleBorder(
-            borderRadius: borderRadius ?? BorderRadius.circular(AppDimensions.radiusM),
+            borderRadius: BorderRadius.circular(12),
           ),
-          minimumSize: Size(0, buttonHeight),
+          padding: padding ?? const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          textStyle: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         );
         break;
       case AppButtonType.text:
         buttonStyle = TextButton.styleFrom(
-          foregroundColor: isDarkMode ? AppColors.primaryDark : AppColors.primaryLight,
-          disabledForegroundColor: isDarkMode 
-              ? AppColors.primaryDark.withOpacity(0.5) 
-              : AppColors.primaryLight.withOpacity(0.5),
-          textStyle: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: fontSize,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-          padding: padding ?? _getPadding(),
+          foregroundColor: colorScheme.primary,
           shape: RoundedRectangleBorder(
-            borderRadius: borderRadius ?? BorderRadius.circular(AppDimensions.radiusM),
+            borderRadius: BorderRadius.circular(12),
           ),
-          minimumSize: Size(0, buttonHeight),
+          padding: padding ?? const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          textStyle: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         );
         break;
     }
     
-    // Widget for the button content - text, icon, or loading indicator
-    Widget buttonContent;
-    
-    if (isLoading) {
-      buttonContent = SizedBox(
-        height: defaultIconSize,
-        width: defaultIconSize,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(
-            type == AppButtonType.outlined || type == AppButtonType.text
-                ? (isDarkMode ? AppColors.primaryDark : AppColors.primaryLight)
-                : Colors.white,
+    final buttonContent = Row(
+      mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (isLoading)
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  type == AppButtonType.tertiary || type == AppButtonType.text
+                      ? colorScheme.primary
+                      : Colors.white,
+                ),
+              ),
+            ),
+          )
+        else if (icon != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconTheme(
+              data: IconThemeData(
+                size: iconSize ?? 20,
+                color: type == AppButtonType.tertiary || type == AppButtonType.text
+                    ? colorScheme.primary
+                    : Colors.white,
+              ),
+              child: icon!,
+            ),
           ),
-        ),
-      );
-    } else if (iconOnly && icon != null) {
-      buttonContent = Icon(
-        icon,
-        size: iconSize ?? defaultIconSize,
-      );
-    } else if (icon != null) {
-      buttonContent = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: iconSize ?? defaultIconSize,
-          ),
-          const SizedBox(width: AppDimensions.spacingS),
-          Text(text),
-        ],
-      );
-    } else {
-      buttonContent = Text(text);
-    }
-    
-    // Render the button based on type
-    Widget button;
+        Text(text),
+      ],
+    );
     
     switch (type) {
       case AppButtonType.primary:
       case AppButtonType.secondary:
-        button = ElevatedButton(
-          onPressed: isLoading ? null : onPressed,
-          style: buttonStyle,
-          child: buttonContent,
+        return SizedBox(
+          width: isFullWidth ? double.infinity : null,
+          child: ElevatedButton(
+            onPressed: isLoading ? null : onPressed,
+            style: buttonStyle,
+            child: buttonContent,
+          ),
         );
-        break;
-      case AppButtonType.outlined:
-        button = OutlinedButton(
-          onPressed: isLoading ? null : onPressed,
-          style: buttonStyle,
-          child: buttonContent,
+      case AppButtonType.tertiary:
+        return SizedBox(
+          width: isFullWidth ? double.infinity : null,
+          child: OutlinedButton(
+            onPressed: isLoading ? null : onPressed,
+            style: buttonStyle,
+            child: buttonContent,
+          ),
         );
-        break;
       case AppButtonType.text:
-        button = TextButton(
-          onPressed: isLoading ? null : onPressed,
-          style: buttonStyle,
-          child: buttonContent,
-        );
-        break;
-    }
-    
-    // If full width, wrap in SizedBox.expand
-    if (isFullWidth) {
-      return SizedBox(
-        width: double.infinity,
-        child: button,
-      );
-    }
-    
-    return button;
-  }
-  
-  EdgeInsets _getPadding() {
-    if (iconOnly) {
-      // For icon-only buttons, use square padding
-      return const EdgeInsets.all(AppDimensions.spacingM);
-    }
-    
-    // For text or text+icon buttons, use horizontal padding
-    switch (size) {
-      case AppButtonSize.small:
-        return const EdgeInsets.symmetric(
-          horizontal: AppDimensions.spacingM,
-          vertical: AppDimensions.spacingXS,
-        );
-      case AppButtonSize.medium:
-        return const EdgeInsets.symmetric(
-          horizontal: AppDimensions.spacingL,
-          vertical: AppDimensions.spacingS,
-        );
-      case AppButtonSize.large:
-        return const EdgeInsets.symmetric(
-          horizontal: AppDimensions.spacingXL,
-          vertical: AppDimensions.spacingM,
+        return SizedBox(
+          width: isFullWidth ? double.infinity : null,
+          child: TextButton(
+            onPressed: isLoading ? null : onPressed,
+            style: buttonStyle,
+            child: buttonContent,
+          ),
         );
     }
   }

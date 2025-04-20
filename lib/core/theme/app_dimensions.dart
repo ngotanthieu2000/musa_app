@@ -1,38 +1,31 @@
+/// Class chứa các kích thước, padding, margin được sử dụng trong ứng dụng
 class AppDimensions {
-  // Spacing
+  /// Spacing
   static const double spacingXXS = 2.0;
   static const double spacingXS = 4.0;
   static const double spacingS = 8.0;
-  static const double spacingM = 12.0;
-  static const double spacingL = 16.0;
-  static const double spacingXL = 24.0;
-  static const double spacingXXL = 32.0;
-  static const double spacingXXXL = 48.0;
-  static const double spacingXXXXL = 64.0;
+  static const double spacingM = 16.0;
+  static const double spacingL = 24.0;
+  static const double spacingXL = 32.0;
+  static const double spacingXXL = 48.0;
+  static const double spacingXXXL = 64.0;
   
-  // Border radius
+  /// Radius
   static const double radiusXS = 4.0;
   static const double radiusS = 8.0;
   static const double radiusM = 12.0;
   static const double radiusL = 16.0;
   static const double radiusXL = 24.0;
   static const double radiusXXL = 32.0;
-  static const double radiusXXXL = 48.0;
   
-  // Borders
-  static const double borderWidthThin = 0.5;
-  static const double borderWidthRegular = 1.0;
-  static const double borderWidthThick = 2.0;
-
-  // Elevations
-  static const double elevationNone = 0.0;
+  /// Elevation
   static const double elevationXS = 1.0;
   static const double elevationS = 2.0;
   static const double elevationM = 4.0;
   static const double elevationL = 8.0;
   static const double elevationXL = 16.0;
   
-  // Icon sizes
+  /// Icon size
   static const double iconSizeXS = 12.0;
   static const double iconSizeS = 16.0;
   static const double iconSizeM = 24.0;
@@ -40,30 +33,39 @@ class AppDimensions {
   static const double iconSizeXL = 48.0;
   static const double iconSizeXXL = 64.0;
   
-  // Button sizes
+  /// Button
   static const double buttonHeightS = 32.0;
-  static const double buttonHeightM = 44.0;
+  static const double buttonHeightM = 48.0;
   static const double buttonHeightL = 56.0;
   
-  // Input sizes
-  static const double inputHeightS = 40.0;
-  static const double inputHeightM = 50.0;
-  static const double inputHeightL = 60.0;
+  /// Input
+  static const double inputHeightS = 32.0;
+  static const double inputHeightM = 48.0;
+  static const double inputHeightL = 56.0;
   
-  // Avatar sizes
+  /// AppBar
+  static const double appBarHeight = 56.0;
+  
+  /// Bottom navigation
+  static const double bottomNavHeight = 56.0;
+  
+  /// Avatar
   static const double avatarSizeXS = 24.0;
-  static const double avatarSizeS = 32.0;
-  static const double avatarSizeM = 48.0;
-  static const double avatarSizeL = 64.0;
-  static const double avatarSizeXL = 96.0;
-  static const double avatarSizeXXL = 128.0;
+  static const double avatarSizeS = 24.0;
+  static const double avatarSizeM = 40.0;
+  static const double avatarSizeL = 56.0;
+  static const double avatarSizeXL = 80.0;
+  
+  // Borders
+  static const double borderWidthThin = 0.5;
+  static const double borderWidthRegular = 1.0;
+  static const double borderWidthThick = 2.0;
   
   // Card sizes
-  static const double cardElevation = 2.0;
+  static const double cardElevation = 1.0;
   static const double cardBorderRadius = 16.0;
   
   // AppBar
-  static const double appBarHeight = 56.0;
   static const double appBarElevation = 0.0;
   
   // BottomNavigationBar
@@ -72,7 +74,7 @@ class AppDimensions {
   static const double bottomNavBarIconSize = 24.0;
   
   // Drawer
-  static const double drawerWidth = 300.0;
+  static const double drawerWidth = 280.0;
   
   // Dialog
   static const double dialogBorderRadius = 20.0;

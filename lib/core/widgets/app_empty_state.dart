@@ -5,73 +5,70 @@ import 'app_button.dart';
 
 class AppEmptyState extends StatelessWidget {
   final String title;
-  final String? message;
-  final IconData? icon;
+  final String message;
+  final IconData icon;
+  final String? actionLabel;
   final VoidCallback? onAction;
-  final String? actionText;
-  final AppButtonType actionButtonType;
   
   const AppEmptyState({
-    super.key,
+    Key? key,
     required this.title,
-    this.message,
-    this.icon = Icons.info_outline,
+    required this.message,
+    this.icon = Icons.sentiment_dissatisfied,
+    this.actionLabel,
     this.onAction,
-    this.actionText,
-    this.actionButtonType = AppButtonType.primary,
-  });
-
+  }) : super(key: key);
+  
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
     
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacingXL),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: AppDimensions.iconSizeXL,
-                color: isDarkMode
-                    ? AppColors.textTertiaryDark
-                    : AppColors.textTertiaryLight,
+            Container(
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: AppDimensions.spacingL),
-            ],
-            
+              padding: const EdgeInsets.all(AppDimensions.spacingL),
+              child: Icon(
+                icon,
+                size: 64,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.spacingL),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: isDarkMode
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
             ),
-            
-            if (message != null) ...[
-              const SizedBox(height: AppDimensions.spacingM),
-              Text(
-                message!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isDarkMode
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                ),
-                textAlign: TextAlign.center,
+            const SizedBox(height: AppDimensions.spacingM),
+            Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
               ),
-            ],
-            
-            if (onAction != null && actionText != null) ...[
+              textAlign: TextAlign.center,
+            ),
+            if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: AppDimensions.spacingXL),
               AppButton(
-                text: actionText!,
+                text: actionLabel!,
                 onPressed: onAction,
-                type: actionButtonType,
-                size: AppButtonSize.medium,
+                type: AppButtonType.primary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.spacingXL,
+                  vertical: AppDimensions.spacingM,
+                ),
               ),
             ],
           ],

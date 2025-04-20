@@ -1,3 +1,5 @@
+import 'package:dartz/dartz.dart' hide Task;
+import '../../../../core/error/failures.dart';
 import '../../domain/entities/task.dart';
 import '../../domain/repositories/task_repository.dart';
 import '../datasources/task_remote_data_source.dart';
@@ -9,69 +11,67 @@ class TaskRepositoryImpl implements TaskRepository {
   TaskRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<List<Task>> getTasks() async {
+  Future<Either<Failure, List<Task>>> getTasks() async {
     try {
-      return await remoteDataSource.getTasks();
+      final taskModels = await remoteDataSource.getTasks();
+      final tasks = taskModels.map((model) => model.toEntity()).toList();
+      return Right(tasks);
     } catch (e) {
-      throw Exception('Failed to get tasks: $e');
+      return Left(ServerFailure(message: 'Failed to get tasks: $e'));
     }
   }
 
   @override
-  Future<Task> getTask(String id) async {
+  Future<Either<Failure, Task>> getTask(String id) async {
     try {
-      return await remoteDataSource.getTask(id);
+      final taskModel = await remoteDataSource.getTask(id);
+      return Right(taskModel.toEntity());
     } catch (e) {
-      throw Exception('Failed to get task: $e');
+      return Left(ServerFailure(message: 'Failed to get task: $e'));
     }
   }
 
   @override
-  Future<Task> createTask({
+  Future<Either<Failure, Task>> createTask({
     required String title,
     required String description,
   }) async {
     try {
-      return await remoteDataSource.createTask(title, description);
+      final taskModel = await remoteDataSource.createTask(title, description);
+      return Right(taskModel.toEntity());
     } catch (e) {
-      throw Exception('Failed to create task: $e');
+      return Left(ServerFailure(message: 'Failed to create task: $e'));
     }
   }
 
   @override
-  Future<Task> updateTask(Task task) async {
+  Future<Either<Failure, Task>> updateTask(Task task) async {
     try {
-      final taskModel = TaskModel(
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        dueDate: task.dueDate,
-        isCompleted: task.isCompleted,
-        priority: task.priority,
-        category: task.category,
-        createdAt: task.createdAt,
-      );
-      return await remoteDataSource.updateTask(taskModel);
+      final taskModel = TaskModel.fromEntity(task);
+      final updatedTaskModel = await remoteDataSource.updateTask(taskModel);
+      return Right(updatedTaskModel.toEntity());
     } catch (e) {
-      throw Exception('Failed to update task: $e');
+      return Left(ServerFailure(message: 'Failed to update task: $e'));
     }
   }
 
   @override
-  Future<void> deleteTask(String id) async {
+  Future<Either<Failure, void>> deleteTask(String id) async {
     try {
       await remoteDataSource.deleteTask(id);
+      return const Right(null);
     } catch (e) {
-      throw Exception('Failed to delete task: $e');
+      return Left(ServerFailure(message: 'Failed to delete task: $e'));
     }
   }
 
   @override
-  Future<void> toggleTaskCompletion(String id) async {
+  Future<Either<Failure, void>> toggleTaskCompletion(String id) async {
     try {
       await remoteDataSource.toggleTaskCompletion(id);
+      return const Right(null);
     } catch (e) {
-      throw Exception('Failed to toggle task completion: $e');
+      return Left(ServerFailure(message: 'Failed to toggle task completion: $e'));
     }
   }
 } 

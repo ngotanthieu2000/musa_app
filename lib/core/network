@@ -1,0 +1,220 @@
+import 'dart:convert';
+import 'dart:io' if (dart.library.js) 'dart:html';
+
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:musa_app/config/env_config.dart';
+import 'package:musa_app/core/error/exceptions.dart';
+import 'package:musa_app/core/web_utils.dart' 
+  if (dart.library.io) 'package:musa_app/core/io_utils.dart';
+
+// Chỉ import js_util khi chạy trên web
+import 'js_util_stub.dart'
+  if (dart.library.js) 'package:musa_app/core/js_util_web.dart';
+
+class ApiClient {
+  final Dio _dio;
+  final String baseUrl;
+  
+  ApiClient({required this.baseUrl, Dio? dio})
+      : _dio = dio ?? Dio() {
+    // Always set baseUrl
+    _dio.options.baseUrl = baseUrl;
+    
+    _dio.options.connectTimeout = const Duration(seconds: 10);
+    _dio.options.receiveTimeout = const Duration(seconds: 10);
+    _dio.options.headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    
+    // Logging interceptor
+    if (kDebugMode) {
+      _dio.interceptors.add(LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+      ));
+    }
+    
+    // Add interceptors to handle errors
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          print('Requesting: ${options.baseUrl}${options.path}');
+          
+          // Don't try to use CORS proxy for localhost connections
+          if (kIsWeb && baseUrl.contains('localhost')) {
+            print('Connecting directly to localhost, no proxy needed');
+          }
+          
+          return handler.next(options);
+        },
+        onError: (DioException e, handler) {
+          if (kIsWeb && e.type == DioExceptionType.connectionError) {
+            print('Error detected: ${e.message}');
+            
+            if (baseUrl.contains('localhost')) {
+              // For localhost backend in web, this is likely a CORS issue
+              print('Localhost backend CORS issue detected.');
+              print('To fix this: Configure your backend server to allow CORS requests.');
+              
+              handler.resolve(
+                Response(
+                  requestOptions: e.requestOptions,
+                  statusCode: 499, // Custom status code for CORS
+                  data: {
+                    'message': 'CORS Error: You need to configure your backend server to allow CORS requests. '
+                      'Add appropriate CORS headers to your server response.'
+                  }
+                )
+              );
+              return;
+            }
+            
+            handler.resolve(
+              Response(
+                requestOptions: e.requestOptions,
+                statusCode: 500,
+                data: {
+                  'message': 'Network Error: Could not connect to the server. '
+                      'Please check your connection and try again.'
+                }
+              )
+            );
+            return;
+          }
+          handler.next(e);
+        },
+      ),
+    );
+  }
+  
+  void setAuthToken(String token) {
+    _dio.options.headers['Authorization'] = 'Bearer $token';
+  }
+  
+  void clearAuthToken() {
+    _dio.options.headers.remove('Authorization');
+  }
+  
+  Future<dynamic> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    try {
+      final response = await _dio.get(
+        path,
+        queryParameters: queryParameters,
+      );
+      return _handleResponse(response);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+  
+  Future<dynamic> post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    try {
+      final response = await _dio.post(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+      );
+      return _handleResponse(response);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+  
+  Future<dynamic> put(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    try {
+      final response = await _dio.put(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+      );
+      return _handleResponse(response);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+  
+  Future<dynamic> delete(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    try {
+      final response = await _dio.delete(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+      );
+      return _handleResponse(response);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+  
+  dynamic _handleResponse(Response response) {
+    if (response.statusCode! >= 200 && response.statusCode! < 300) {
+      return response.data;
+    } else {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        error: 'Server error with status code: ${response.statusCode}',
+      );
+    }
+  }
+  
+  Exception _handleError(DioException e) {
+    // Special handling for CORS error we detected in the interceptor
+    if (e.response?.statusCode == 499) {
+      return NetworkException(
+        statusCode: 499,
+        message: e.response?.data?['message'] ?? 'CORS Error occurred',
+      );
+    }
+    
+    if (e.response != null) {
+      // Return the error message from the server if available
+      final errorMessage = e.response?.data?['message'] ?? 'Unexpected error occurred';
+      return ServerException(
+        message: errorMessage,
+        statusCode: e.response?.statusCode,
+      );
+    } else if (!kIsWeb && e.error is Object && e.error.toString().contains('SocketException')) {
+      // Network connection error - kiểm tra an toàn trên cả web và mobile
+      return const NetworkException(
+        statusCode: 0,
+        message: 'No network connection. Please check your connection.',
+      );
+    } else if (kIsWeb && e.type == DioExceptionType.connectionError) {
+      // Common CORS error in web
+      String errorMessage = 'Network connection error.';
+      
+      if (baseUrl.contains('localhost')) {
+        errorMessage = 'CORS Error: Your backend server needs to allow cross-origin requests from the browser.\n'
+            'You need to add appropriate CORS headers to your server response.';
+      }
+      
+      return NetworkException(
+        statusCode: 0,
+        message: errorMessage,
+      );
+    } else {
+      // Other errors
+      return ServerException(
+        message: e.message ?? 'An undefined error occurred.',
+      );
+    }
+  }
+}

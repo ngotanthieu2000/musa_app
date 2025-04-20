@@ -4,7 +4,7 @@ class AppException implements Exception {
   final String? details;
   final StackTrace? stackTrace;
 
-  AppException({
+  const AppException({
     required this.message,
     this.details,
     this.stackTrace,
@@ -16,11 +16,11 @@ class AppException implements Exception {
   }
 }
 
-/// Exception thrown when there's a server error
+/// Exception for server-related errors
 class ServerException extends AppException {
   final int? statusCode;
 
-  ServerException({
+  const ServerException({
     String message = 'Đã xảy ra lỗi máy chủ',
     String? details,
     this.statusCode,
@@ -30,37 +30,14 @@ class ServerException extends AppException {
           details: details,
           stackTrace: stackTrace,
         );
+
+  @override
+  String toString() => 'ServerException: $message (statusCode: $statusCode)';
 }
 
-/// Exception thrown when there's a network error
-class NetworkException extends AppException {
-  NetworkException({
-    String message = 'Không thể kết nối đến máy chủ',
-    String? details,
-    StackTrace? stackTrace,
-  }) : super(
-          message: message,
-          details: details,
-          stackTrace: stackTrace,
-        );
-}
-
-/// Exception thrown when a resource is not found
-class NotFoundException extends AppException {
-  NotFoundException({
-    String message = 'Không tìm thấy tài nguyên',
-    String? details,
-    StackTrace? stackTrace,
-  }) : super(
-          message: message,
-          details: details,
-          stackTrace: stackTrace,
-        );
-}
-
-/// Exception thrown when there's a cache error
+/// Exception for cache-related errors
 class CacheException extends AppException {
-  CacheException({
+  const CacheException({
     String message = 'Lỗi bộ nhớ cache',
     String? details,
     StackTrace? stackTrace,
@@ -69,12 +46,15 @@ class CacheException extends AppException {
           details: details,
           stackTrace: stackTrace,
         );
+
+  @override
+  String toString() => 'CacheException: $message';
 }
 
-/// Exception thrown when user is not authenticated
-class UnauthenticatedException extends AppException {
-  UnauthenticatedException({
-    String message = 'Vui lòng đăng nhập để tiếp tục',
+/// Exception for authentication errors
+class AuthException extends AppException {
+  const AuthException({
+    String message = 'Lỗi xác thực',
     String? details,
     StackTrace? stackTrace,
   }) : super(
@@ -82,26 +62,35 @@ class UnauthenticatedException extends AppException {
           details: details,
           stackTrace: stackTrace,
         );
+
+  @override
+  String toString() => 'AuthException: $message';
 }
 
-/// Exception thrown when user is not authorized
-class UnauthorizedException extends AppException {
-  UnauthorizedException({
-    String message = 'Bạn không có quyền truy cập',
+/// Exception for network errors
+class NetworkException extends AppException {
+  final int statusCode;
+
+  const NetworkException({
+    String message = 'Không thể kết nối đến máy chủ',
     String? details,
     StackTrace? stackTrace,
+    required this.statusCode,
   }) : super(
           message: message,
           details: details,
           stackTrace: stackTrace,
         );
+
+  @override
+  String toString() => 'NetworkException: $message (statusCode: $statusCode)';
 }
 
-/// Exception thrown when user input is invalid
+/// Exception for validation errors
 class ValidationException extends AppException {
-  final Map<String, String>? errors;
+  final Map<String, List<String>>? errors;
 
-  ValidationException({
+  const ValidationException({
     String message = 'Dữ liệu không hợp lệ',
     String? details,
     this.errors,
@@ -111,27 +100,35 @@ class ValidationException extends AppException {
           details: details,
           stackTrace: stackTrace,
         );
+
+  @override
+  String toString() {
+    if (errors != null && errors!.isNotEmpty) {
+      return 'ValidationException: $message, errors: $errors';
+    }
+    return 'ValidationException: $message';
+  }
 }
 
-/// Exception thrown when there's an error in Firebase
-class FirebaseException extends AppException {
-  final String? code;
-
-  FirebaseException({
-    String message = 'Lỗi Firebase',
+/// Exception for unauthorized access
+class UnauthorizedException extends AppException {
+  const UnauthorizedException({
+    String message = 'Bạn không có quyền truy cập',
     String? details,
-    this.code,
     StackTrace? stackTrace,
   }) : super(
           message: message,
           details: details,
           stackTrace: stackTrace,
         );
+
+  @override
+  String toString() => 'UnauthorizedException: $message';
 }
 
 /// Exception thrown when there's a timeout
 class TimeoutException extends AppException {
-  TimeoutException({
+  const TimeoutException({
     String message = 'Quá thời gian xử lý yêu cầu',
     String? details,
     StackTrace? stackTrace,
@@ -144,7 +141,7 @@ class TimeoutException extends AppException {
 
 /// Exception thrown when there's an unknown error
 class UnknownException extends AppException {
-  UnknownException({
+  const UnknownException({
     String message = 'Đã xảy ra lỗi không xác định',
     String? details,
     StackTrace? stackTrace,

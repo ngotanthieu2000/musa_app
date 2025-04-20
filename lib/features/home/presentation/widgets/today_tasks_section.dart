@@ -75,9 +75,9 @@ class TodayTasksSection extends StatelessWidget {
     
     return AppCard(
       padding: const EdgeInsets.all(AppDimensions.spacingL),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -95,7 +95,7 @@ class TodayTasksSection extends StatelessWidget {
                 ),
               ),
             ],
-          ),
+            ),
           const SizedBox(height: AppDimensions.spacingM),
           ClipRRect(
             borderRadius: BorderRadius.circular(AppDimensions.radiusS),
@@ -154,9 +154,9 @@ class TodayTasksSection extends StatelessWidget {
             ),
             const SizedBox(width: AppDimensions.spacingM),
             Expanded(
-              child: Column(
+                  child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                    children: [
                   Text(
                     task.title,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -185,7 +185,7 @@ class TodayTasksSection extends StatelessWidget {
                     ),
                 ],
               ),
-            ),
+                      ),
             const SizedBox(width: AppDimensions.spacingM),
             Theme(
               data: Theme.of(context).copyWith(

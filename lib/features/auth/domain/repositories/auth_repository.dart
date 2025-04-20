@@ -1,29 +1,33 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
+import '../entities/auth_tokens.dart';
 import '../entities/user.dart';
 
 abstract class AuthRepository {
-  /// Kiểm tra đã xác thực hay chưa
-  Future<Either<Failure, bool>> isAuthenticated();
+  /// Đăng ký người dùng mới
+  Future<Either<Failure, User>> register({
+    required String email,
+    required String password,
+    String? name,
+  });
+  
+  /// Đăng nhập người dùng
+  Future<Either<Failure, User>> login({
+    required String email,
+    required String password,
+  });
+  
+  /// Làm mới token
+  Future<Either<Failure, AuthTokens>> refreshToken({
+    required String refreshToken,
+  });
+  
+  /// Đăng xuất người dùng
+  Future<Either<Failure, void>> logout();
   
   /// Lấy thông tin người dùng hiện tại
   Future<Either<Failure, User>> getCurrentUser();
   
-  /// Đăng nhập với email và mật khẩu
-  Future<Either<Failure, User>> login(String email, String password);
-  
-  /// Đăng ký với tên, email và mật khẩu
-  Future<Either<Failure, User>> register(String name, String email, String password);
-  
-  /// Đăng xuất
-  Future<Either<Failure, void>> logout();
-  
-  /// Quên mật khẩu
-  Future<Either<Failure, void>> forgotPassword(String email);
-  
-  /// Cập nhật thông tin người dùng
-  Future<Either<Failure, User>> updateProfile(User user);
-  
-  /// Thay đổi mật khẩu
-  Future<Either<Failure, void>> changePassword(String oldPassword, String newPassword);
+  /// Kiểm tra xem người dùng đã đăng nhập chưa
+  Future<Either<Failure, bool>> isLoggedIn();
 }

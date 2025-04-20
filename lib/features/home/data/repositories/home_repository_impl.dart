@@ -1,6 +1,7 @@
 // features/home/data/repositories/home_repository_impl.dart
 import 'package:dartz/dartz.dart';
 import '../../domain/repositories/home_repository.dart';
+import '../../domain/entities/home_data.dart';
 import '../../domain/entities/home_feature.dart';
 import '../datasources/home_remote_data_source.dart';
 import '../../../../core/error/failures.dart';
@@ -10,6 +11,24 @@ class HomeRepositoryImpl implements HomeRepository {
   final HomeRemoteDataSource remoteDataSource;
 
   HomeRepositoryImpl({required this.remoteDataSource});
+
+  @override
+  Future<Either<Failure, HomeData>> getHomeData() async {
+    try {
+      // Tạo dữ liệu mẫu tạm thời
+      final homeData = HomeData(
+        userName: 'User',
+        todayTasks: [],
+        goals: [],
+        overallProgress: 0,
+        tasksCompleted: 0,
+        totalTasks: 0,
+      );
+      return Right(homeData);
+    } catch (e) {
+      return Left(ServerFailure(message: 'Failed to get home data'));
+    }
+  }
 
   @override
   Future<Either<Failure, List<HomeFeature>>> getHomeFeatures() async {
@@ -24,7 +43,7 @@ class HomeRepositoryImpl implements HomeRepository {
 
       return Right(features);
     } catch (e) {
-      return const Left(ServerFailure());
+      return Left(ServerFailure(message: 'Failed to get home features'));
     }
   }
 }

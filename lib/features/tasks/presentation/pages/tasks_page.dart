@@ -11,7 +11,7 @@ class TasksPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Công việc'),
+        title: const Text('Tasks'),
       ),
       body: BlocBuilder<TasksBloc, TasksState>(
         builder: (context, state) {
@@ -34,7 +34,7 @@ class TasksPage extends StatelessWidget {
             );
           }
 
-          return const Center(child: Text('Không có công việc nào'));
+          return const Center(child: Text('No tasks found'));
         },
       ),
     );

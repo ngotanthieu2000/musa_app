@@ -1,19 +1,57 @@
 part of 'auth_bloc.dart';
 
-@freezed
-class AuthEvent with _$AuthEvent {
-  const factory AuthEvent.checkAuthStatus() = CheckAuthStatus;
+abstract class AuthEvent extends Equatable {
+  const AuthEvent();
   
-  const factory AuthEvent.loginRequested({
-    required String email,
-    required String password,
-  }) = LoginRequested;
+  @override
+  List<Object?> get props => [];
+}
+
+class AuthCheckStatusEvent extends AuthEvent {}
+
+class AuthRegisterEvent extends AuthEvent {
+  final String email;
+  final String password;
+  final String? name;
   
-  const factory AuthEvent.registerRequested({
-    required String name,
-    required String email,
-    required String password,
-  }) = RegisterRequested;
+  const AuthRegisterEvent({
+    required this.email,
+    required this.password,
+    this.name,
+  });
   
-  const factory AuthEvent.logoutRequested() = LogoutRequested;
-} 
+  @override
+  List<Object?> get props => [email, password, name];
+}
+
+class AuthLoginEvent extends AuthEvent {
+  final String email;
+  final String password;
+  
+  const AuthLoginEvent({
+    required this.email,
+    required this.password,
+  });
+  
+  @override
+  List<Object> get props => [email, password];
+}
+
+class AuthLogoutEvent extends AuthEvent {}
+
+class AuthRefreshTokenEvent extends AuthEvent {
+  final String refreshToken;
+  
+  const AuthRefreshTokenEvent({required this.refreshToken});
+  
+  @override
+  List<Object> get props => [refreshToken];
+}
+
+class AuthGetCurrentUserEvent extends AuthEvent {}
+
+// Event to enter guest mode without authentication
+class AuthEnterGuestModeEvent extends AuthEvent {}
+
+// Event to exit guest mode and return to unauthenticated state
+class AuthExitGuestModeEvent extends AuthEvent {} 

@@ -5,40 +5,32 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 
 class AssistantCard extends StatelessWidget {
-  const AssistantCard({super.key});
-
+  final VoidCallback onAskQuestion;
+  
+  const AssistantCard({
+    Key? key,
+    required this.onAskQuestion,
+  }) : super(key: key);
+  
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
     
     return AppCard(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          isDarkMode 
-              ? AppColors.primaryDark.withOpacity(0.3) 
-              : AppColors.primaryLight.withOpacity(0.2),
-          isDarkMode 
-              ? AppColors.secondaryDark.withOpacity(0.25) 
-              : AppColors.secondaryLight.withOpacity(0.15),
-        ],
-      ),
+      padding: const EdgeInsets.all(AppDimensions.spacingL),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(AppDimensions.spacingM),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.smart_toy_outlined,
-                  size: 28,
-                  color: Colors.white,
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: colorScheme.primary.withOpacity(0.2),
+                child: Icon(
+                  Icons.assistant,
+                  color: colorScheme.primary,
                 ),
               ),
               const SizedBox(width: AppDimensions.spacingM),
@@ -47,16 +39,15 @@ class AssistantCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Trợ lý AI của bạn',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
+                      'Personal Assistant',
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      'Hãy hỏi tôi bất cứ điều gì',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.8),
+                      'How can I help you today?',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -65,110 +56,68 @@ class AssistantCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimensions.spacingL),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildFeatureItem(
-                context,
-                Icons.calendar_today_outlined,
-                'Lịch của tôi',
-              ),
-              _buildFeatureItem(
-                context,
-                Icons.article_outlined,
-                'Ghi chú',
-              ),
-              _buildFeatureItem(
-                context,
-                Icons.task_alt_outlined,
-                'Tạo công việc',
-              ),
-            ],
-          ),
+          _buildSuggestions(context),
           const SizedBox(height: AppDimensions.spacingL),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.spacingL,
-              vertical: AppDimensions.spacingM,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusL),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Bạn cần giúp gì?',
-                      hintStyle: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                      ),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    style: const TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppDimensions.spacingM),
-                AppButton(
-                  text: 'Hỏi',
-                  onPressed: () {
-                    // TODO: Implement assistant query
-                  },
-                  type: AppButtonType.primary,
-                  size: AppButtonSize.small,
-                  icon: Icons.send,
-                  iconSize: 18,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.spacingL,
-                    vertical: AppDimensions.spacingS,
-                  ),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusL),
-                ),
-              ],
-            ),
-          ),
+          _buildAskButton(context),
         ],
       ),
     );
   }
   
-  Widget _buildFeatureItem(BuildContext context, IconData icon, String label) {
-    return InkWell(
-      onTap: () {
-        // TODO: Implement feature action
-      },
-      borderRadius: BorderRadius.circular(AppDimensions.radiusM),
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingS),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppDimensions.spacingS),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusS),
-              ),
-              child: Icon(
-                icon,
-                size: 24,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: AppDimensions.spacingS),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white,
-              ),
-            ),
-          ],
+  Widget _buildSuggestions(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    
+    List<String> suggestions = [
+      'What tasks do I have today?',
+      'Create a new reminder',
+      'Summarize my health data',
+      'Show my spending this month',
+    ];
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Suggestions',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        const SizedBox(height: AppDimensions.spacingS),
+        Wrap(
+          spacing: AppDimensions.spacingS,
+          runSpacing: AppDimensions.spacingS,
+          children: suggestions.map((suggestion) {
+            return Chip(
+              label: Text(
+                suggestion,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.primary,
+                ),
+              ),
+              backgroundColor: colorScheme.primary.withOpacity(0.1),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.spacingXS,
+                vertical: AppDimensions.spacingXXS,
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildAskButton(BuildContext context) {
+    return AppButton(
+      text: 'Ask a Question',
+      icon: const Icon(Icons.chat),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.spacingM,
+        vertical: AppDimensions.spacingS,
       ),
+      onPressed: onAskQuestion,
+      isFullWidth: true,
     );
   }
 } 

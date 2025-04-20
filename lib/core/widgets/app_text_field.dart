@@ -1,153 +1,142 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_dimensions.dart';
 
 class AppTextField extends StatelessWidget {
-  final TextEditingController? controller;
+  final TextEditingController controller;
   final String? label;
   final String? hint;
-  final String? helperText;
+  final String? labelText;
   final String? errorText;
+  final Widget? prefixIcon;
+  final Widget? suffixIcon;
   final bool obscureText;
-  final bool enabled;
-  final bool readOnly;
-  final TextInputType keyboardType;
-  final TextInputAction textInputAction;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
   final TextCapitalization textCapitalization;
   final int? maxLines;
   final int? minLines;
-  final int? maxLength;
-  final Widget? prefix;
-  final Widget? suffix;
-  final Widget? prefixIcon;
-  final Widget? suffixIcon;
-  final Function(String)? onChanged;
-  final Function(String)? onSubmitted;
-  final Function()? onTap;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onEditingComplete;
+  final FormFieldValidator<String>? validator;
   final List<TextInputFormatter>? inputFormatters;
+  final bool readOnly;
+  final bool enabled;
+  final VoidCallback? onTap;
+  final bool autofocus;
   final FocusNode? focusNode;
-  final BorderRadius? borderRadius;
-  final EdgeInsets? contentPadding;
-
+  final EdgeInsetsGeometry? contentPadding;
+  final int? maxLength;
+  final bool filled;
+  final Color? fillColor;
+  final InputBorder? border;
+  final InputBorder? enabledBorder;
+  final InputBorder? focusedBorder;
+  final InputBorder? errorBorder;
+  final InputBorder? disabledBorder;
+  final TextStyle? style;
+  final TextAlign textAlign;
+  final bool expands;
+  
   const AppTextField({
-    super.key,
-    this.controller,
+    Key? key,
+    required this.controller,
     this.label,
     this.hint,
-    this.helperText,
+    this.labelText,
     this.errorText,
+    this.prefixIcon,
+    this.suffixIcon,
     this.obscureText = false,
-    this.enabled = true,
-    this.readOnly = false,
-    this.keyboardType = TextInputType.text,
-    this.textInputAction = TextInputAction.next,
+    this.keyboardType,
+    this.textInputAction,
     this.textCapitalization = TextCapitalization.none,
     this.maxLines = 1,
     this.minLines,
-    this.maxLength,
-    this.prefix,
-    this.suffix,
-    this.prefixIcon,
-    this.suffixIcon,
     this.onChanged,
-    this.onSubmitted,
-    this.onTap,
+    this.onEditingComplete,
+    this.validator,
     this.inputFormatters,
+    this.readOnly = false,
+    this.enabled = true,
+    this.onTap,
+    this.autofocus = false,
     this.focusNode,
-    this.borderRadius,
     this.contentPadding,
-  });
-
+    this.maxLength,
+    this.filled = true,
+    this.fillColor,
+    this.border,
+    this.enabledBorder,
+    this.focusedBorder,
+    this.errorBorder,
+    this.disabledBorder,
+    this.style,
+    this.textAlign = TextAlign.start,
+    this.expands = false,
+  }) : super(key: key);
+  
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      textInputAction: textInputAction,
-      textCapitalization: textCapitalization,
-      maxLines: maxLines,
-      minLines: minLines,
-      maxLength: maxLength,
-      enabled: enabled,
-      readOnly: readOnly,
-      focusNode: focusNode,
-      inputFormatters: inputFormatters,
-      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        color: isDarkMode
-            ? AppColors.textPrimaryDark
-            : AppColors.textPrimaryLight,
-      ),
-      onChanged: onChanged,
-      onSubmitted: onSubmitted,
-      onTap: onTap,
-      cursorColor: isDarkMode ? AppColors.primaryDark : AppColors.primaryLight,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        helperText: helperText,
-        errorText: errorText,
-        contentPadding: contentPadding ??
-            const EdgeInsets.symmetric(
-              horizontal: AppDimensions.spacingL,
-              vertical: AppDimensions.spacingL,
+    final defaultContentPadding = const EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 16,
+    );
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (label != null) ...[
+          Text(
+            label!,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+              color: colorScheme.onSurfaceVariant,
             ),
-        filled: true,
-        fillColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
-        prefixIcon: prefixIcon,
-        suffixIcon: suffixIcon,
-        prefix: prefix,
-        suffix: suffix,
-        floatingLabelBehavior: FloatingLabelBehavior.auto,
-        counterText: '',
-        border: OutlineInputBorder(
-          borderRadius: borderRadius ?? BorderRadius.circular(AppDimensions.radiusM),
-          borderSide: BorderSide(
-            color: isDarkMode ? AppColors.dividerDark : AppColors.dividerLight,
-            width: AppDimensions.borderWidthRegular,
           ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: borderRadius ?? BorderRadius.circular(AppDimensions.radiusM),
-          borderSide: BorderSide(
-            color: isDarkMode ? AppColors.dividerDark : AppColors.dividerLight,
-            width: AppDimensions.borderWidthRegular,
+          const SizedBox(height: 8),
+        ],
+        TextFormField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: labelText,
+            hintText: hint,
+            errorText: errorText,
+            prefixIcon: prefixIcon,
+            suffixIcon: suffixIcon,
+            contentPadding: contentPadding ?? defaultContentPadding,
+            filled: filled,
+            fillColor: fillColor ?? colorScheme.surfaceVariant.withOpacity(0.4),
+            border: border,
+            enabledBorder: enabledBorder,
+            focusedBorder: focusedBorder,
+            errorBorder: errorBorder,
+            disabledBorder: disabledBorder,
+            isDense: true,
           ),
+          style: style ?? theme.textTheme.bodyMedium,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          textInputAction: textInputAction,
+          textCapitalization: textCapitalization,
+          maxLines: obscureText ? 1 : maxLines,
+          minLines: minLines,
+          onChanged: onChanged,
+          onEditingComplete: onEditingComplete,
+          validator: validator,
+          inputFormatters: inputFormatters,
+          readOnly: readOnly,
+          enabled: enabled,
+          onTap: onTap,
+          autofocus: autofocus,
+          focusNode: focusNode,
+          maxLength: maxLength,
+          textAlign: textAlign,
+          expands: expands,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: borderRadius ?? BorderRadius.circular(AppDimensions.radiusM),
-          borderSide: BorderSide(
-            color: isDarkMode ? AppColors.primaryDark : AppColors.primaryLight,
-            width: AppDimensions.borderWidthThick,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: borderRadius ?? BorderRadius.circular(AppDimensions.radiusM),
-          borderSide: BorderSide(
-            color: isDarkMode ? AppColors.errorDark : AppColors.errorLight,
-            width: AppDimensions.borderWidthRegular,
-          ),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: borderRadius ?? BorderRadius.circular(AppDimensions.radiusM),
-          borderSide: BorderSide(
-            color: isDarkMode ? AppColors.errorDark : AppColors.errorLight,
-            width: AppDimensions.borderWidthThick,
-          ),
-        ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: borderRadius ?? BorderRadius.circular(AppDimensions.radiusM),
-          borderSide: BorderSide(
-            color: isDarkMode 
-                ? AppColors.dividerDark.withOpacity(0.5) 
-                : AppColors.dividerLight.withOpacity(0.5),
-            width: AppDimensions.borderWidthRegular,
-          ),
-        ),
-      ),
+      ],
     );
   }
 } 

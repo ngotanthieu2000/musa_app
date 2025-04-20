@@ -1,5 +1,4 @@
 import 'package:dartz/dartz.dart';
-import 'package:equatable/equatable.dart';
 import '../error/failures.dart';
 
 /// Interface cho tất cả các use case
@@ -8,9 +7,12 @@ abstract class UseCase<Type, Params> {
 }
 
 /// Use case không có tham số
-class NoParams extends Equatable {
+class NoParams {
   const NoParams();
+}
+
+class RefreshTokenParams {
+  final String refreshToken;
   
-  @override
-  List<Object> get props => [];
+  const RefreshTokenParams({required this.refreshToken});
 } 

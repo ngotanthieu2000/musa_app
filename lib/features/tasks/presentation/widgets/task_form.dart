@@ -47,10 +47,10 @@ class _TaskFormState extends State<TaskForm> {
             children: [
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Tiêu đề'),
+                decoration: const InputDecoration(labelText: 'Title'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Vui lòng nhập tiêu đề';
+                    return 'Please enter a title';
                   }
                   return null;
                 },
@@ -58,13 +58,13 @@ class _TaskFormState extends State<TaskForm> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Mô tả'),
+                decoration: const InputDecoration(labelText: 'Description'),
                 maxLines: 3,
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _submitForm,
-                child: const Text('Thêm công việc'),
+                child: const Text('Add Task'),
               ),
             ],
           ),

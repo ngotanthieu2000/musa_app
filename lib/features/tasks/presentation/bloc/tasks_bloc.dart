@@ -1,7 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:dartz/dartz.dart' hide Task;
 import '../../domain/entities/task.dart';
 import '../../domain/repositories/task_repository.dart';
+import '../../../../core/error/failures.dart';
 
 // Events
 abstract class TasksEvent extends Equatable {
@@ -92,71 +94,95 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     FetchTasks event,
     Emitter<TasksState> emit,
   ) async {
-    try {
-      emit(TasksLoading());
-      final tasks = await repository.getTasks();
-      emit(TasksLoaded(tasks));
-    } catch (e) {
-      emit(TasksError(e.toString()));
-    }
+    emit(TasksLoading());
+    final result = await repository.getTasks();
+    
+    emit(result.fold(
+      (failure) => TasksError(failure.message),
+      (tasks) => TasksLoaded(tasks),
+    ));
   }
 
   Future<void> _onAddTask(
     AddTask event,
     Emitter<TasksState> emit,
   ) async {
-    try {
-      emit(TasksLoading());
-      await repository.createTask(
-        title: event.title,
-        description: event.description,
-      );
-      final tasks = await repository.getTasks();
-      emit(TasksLoaded(tasks));
-    } catch (e) {
-      emit(TasksError(e.toString()));
-    }
+    emit(TasksLoading());
+    
+    final createResult = await repository.createTask(
+      title: event.title,
+      description: event.description,
+    );
+    
+    await createResult.fold(
+      (failure) async => emit(TasksError(failure.message)),
+      (_) async {
+        final tasksResult = await repository.getTasks();
+        emit(tasksResult.fold(
+          (failure) => TasksError(failure.message),
+          (tasks) => TasksLoaded(tasks),
+        ));
+      },
+    );
   }
 
   Future<void> _onUpdateTask(
     UpdateTask event,
     Emitter<TasksState> emit,
   ) async {
-    try {
-      emit(TasksLoading());
-      await repository.updateTask(event.task);
-      final tasks = await repository.getTasks();
-      emit(TasksLoaded(tasks));
-    } catch (e) {
-      emit(TasksError(e.toString()));
-    }
+    emit(TasksLoading());
+    
+    final updateResult = await repository.updateTask(event.task);
+    
+    await updateResult.fold(
+      (failure) async => emit(TasksError(failure.message)),
+      (_) async {
+        final tasksResult = await repository.getTasks();
+        emit(tasksResult.fold(
+          (failure) => TasksError(failure.message),
+          (tasks) => TasksLoaded(tasks),
+        ));
+      },
+    );
   }
 
   Future<void> _onDeleteTask(
     DeleteTask event,
     Emitter<TasksState> emit,
   ) async {
-    try {
-      emit(TasksLoading());
-      await repository.deleteTask(event.taskId);
-      final tasks = await repository.getTasks();
-      emit(TasksLoaded(tasks));
-    } catch (e) {
-      emit(TasksError(e.toString()));
-    }
+    emit(TasksLoading());
+    
+    final deleteResult = await repository.deleteTask(event.taskId);
+    
+    await deleteResult.fold(
+      (failure) async => emit(TasksError(failure.message)),
+      (_) async {
+        final tasksResult = await repository.getTasks();
+        emit(tasksResult.fold(
+          (failure) => TasksError(failure.message),
+          (tasks) => TasksLoaded(tasks),
+        ));
+      },
+    );
   }
 
   Future<void> _onToggleTaskCompletion(
     ToggleTaskCompletion event,
     Emitter<TasksState> emit,
   ) async {
-    try {
-      emit(TasksLoading());
-      await repository.toggleTaskCompletion(event.taskId);
-      final tasks = await repository.getTasks();
-      emit(TasksLoaded(tasks));
-    } catch (e) {
-      emit(TasksError(e.toString()));
-    }
+    emit(TasksLoading());
+    
+    final toggleResult = await repository.toggleTaskCompletion(event.taskId);
+    
+    await toggleResult.fold(
+      (failure) async => emit(TasksError(failure.message)),
+      (_) async {
+        final tasksResult = await repository.getTasks();
+        emit(tasksResult.fold(
+          (failure) => TasksError(failure.message),
+          (tasks) => TasksLoaded(tasks),
+        ));
+      },
+    );
   }
 } 

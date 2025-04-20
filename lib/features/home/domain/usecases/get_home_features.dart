@@ -3,13 +3,16 @@ import 'package:dartz/dartz.dart';
 import '../repositories/home_repository.dart';
 import '../entities/home_feature.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/usecases/usecase.dart';
 
-class GetHomeFeatures {
+class GetHomeFeatures implements UseCase<List<HomeFeature>, NoParams> {
   final HomeRepository repository;
 
   GetHomeFeatures({required this.repository});
 
-  Future<Either<Failure, List<HomeFeature>>> call() async {
-    return await repository.getHomeFeatures();
+  @override
+  Future<Either<Failure, List<HomeFeature>>> call(NoParams params) async {
+    // Tạm thời trả về danh sách trống
+    return Right([]);
   }
 }

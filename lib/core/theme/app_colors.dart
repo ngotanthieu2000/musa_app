@@ -1,71 +1,68 @@
 import 'package:flutter/material.dart';
 
+/// Class chứa các màu sắc được sử dụng trong ứng dụng
 class AppColors {
-  // Chế độ sáng
-  static const Color primaryLight = Color(0xFF2563EB);
-  static const Color secondaryLight = Color(0xFF10B981);
-  static const Color accentLight = Color(0xFFF59E0B);
-  static const Color backgroundLight = Color(0xFFF8FAFC);
-  static const Color surfaceLight = Color(0xFFFFFFFF);
-  static const Color errorLight = Color(0xFFEF4444);
-  static const Color warningLight = Color(0xFFF97316);
-  static const Color successLight = Color(0xFF22C55E);
-  static const Color infoLight = Color(0xFF3B82F6);
+  // Primary
+  static const primary = Color(0xFF2563EB);
+  static const primaryDark = Color(0xFF1E40AF);
+  static const primaryLight = Color(0xFF3B82F6);
   
-  static const Color textPrimaryLight = Color(0xFF111827);
-  static const Color textSecondaryLight = Color(0xFF4B5563);
-  static const Color textTertiaryLight = Color(0xFF9CA3AF);
-  static const Color textInverseLight = Color(0xFFFFFFFF);
+  // Secondary
+  static const secondary = Color(0xFF8B5CF6);
+  static const secondaryDark = Color(0xFF5B21B6);
+  static const secondaryLight = Color(0xFFA78BFA);
   
-  static const Color dividerLight = Color(0xFFE5E7EB);
-  static const Color cardLight = Color(0xFFFFFFFF);
-  static const Color shadowLight = Color(0x1A000000);
+  // Background
+  static const backgroundDark = Color(0xFF121212);
+  static const backgroundLight = Color(0xFFF3F4F6);
   
-  // Chế độ tối
-  static const Color primaryDark = Color(0xFF3B82F6);
-  static const Color secondaryDark = Color(0xFF34D399);
-  static const Color accentDark = Color(0xFFFBBF24);
-  static const Color backgroundDark = Color(0xFF111827);
-  static const Color surfaceDark = Color(0xFF1F2937);
-  static const Color errorDark = Color(0xFFF87171);
-  static const Color warningDark = Color(0xFFFB923C);
-  static const Color successDark = Color(0xFF4ADE80);
-  static const Color infoDark = Color(0xFF60A5FA);
+  // Card
+  static const cardDark = Color(0xFF1E1E1E);
+  static const cardLight = Color(0xFFFFFFFF);
   
-  static const Color textPrimaryDark = Color(0xFFF9FAFB);
-  static const Color textSecondaryDark = Color(0xFFD1D5DB);
-  static const Color textTertiaryDark = Color(0xFF6B7280);
-  static const Color textInverseDark = Color(0xFF111827);
+  // Text
+  static const textPrimaryDark = Color(0xFFFAFAFA);
+  static const textPrimaryLight = Color(0xFF1A1A1A);
+  static const textSecondaryDark = Color(0xFFB3B3B3);
+  static const textSecondaryLight = Color(0xFF6B7280);
+  static const textTertiaryDark = Color(0xFF717171);
+  static const textTertiaryLight = Color(0xFF9CA3AF);
   
-  static const Color dividerDark = Color(0xFF374151);
-  static const Color cardDark = Color(0xFF1F2937);
-  static const Color shadowDark = Color(0x1AFFFFFF);
+  // Status Colors
+  static const successDark = Color(0xFF00C853);
+  static const successLight = Color(0xFF4ADE80);
+  static const warningDark = Color(0xFFFF9800);
+  static const warningLight = Color(0xFFFEBE4F);
+  static const errorDark = Color(0xFFEF4444);
+  static const errorLight = Color(0xFFF87171);
+  static const infoDark = Color(0xFF03A9F4);
+  static const infoLight = Color(0xFF60A5FA);
   
-  // Gradient
-  static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF2563EB),
-      Color(0xFF3B82F6),
-    ],
-  );
+  // Accent
+  static const accentDark = Color(0xFFEC4899);
+  static const accentLight = Color(0xFFF472B6);
   
-  static const LinearGradient secondaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF10B981),
-      Color(0xFF34D399),
-    ],
-  );
+  // Surface
+  static const surfaceDark = Color(0xFF2A2A2A);
+  static const surfaceLight = Color(0xFFF9FAFB);
   
-  static const LinearGradient accentGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFFF59E0B),
-      Color(0xFFFBBF24),
-    ],
-  );
+  // Border
+  static const borderDark = Color(0xFF404040);
+  static const borderLight = Color(0xFFE5E7EB);
+  
+  // Shadow
+  static const shadowDark = Color(0x80000000);
+  static const shadowLight = Color(0x20000000);
+  
+  // Overlay
+  static const overlayDark = Color(0x80000000);
+  static const overlayLight = Color(0x20000000);
+  
+  // Divider
+  static const dividerDark = Color(0xFF323232);
+  static const dividerLight = Color(0xFFE5E7EB);
+  
+  // Icon
+  static const iconDark = Color(0xFFB3B3B3);
+  static const iconLight = Color(0xFF6B7280);
 } 
