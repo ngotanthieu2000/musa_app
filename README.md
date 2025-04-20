@@ -1,16 +1,35 @@
-# myapp
+# AI Learning App
 
-A new Flutter project.
+## Cách chạy ứng dụng
 
-## Getting Started
+### Development
+```bash
+flutter run --dart-define=API_BASE_URL=http://localhost:8080/api/v1
+```
 
-This project is a starting point for a Flutter application.
+### Staging
+```bash
+flutter run --dart-define=API_BASE_URL=https://staging-api.example.com/api/v1
+```
 
-A few resources to get you started if this is your first Flutter project:
+### Production
+```bash
+flutter run --dart-define=API_BASE_URL=https://api.example.com/api/v1
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Cấu hình môi trường
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Ứng dụng sử dụng các biến môi trường sau:
+
+- `API_BASE_URL`: URL của API backend
+
+## Cấu trúc thư mục
+
+```
+lib/
+  ├── config/           # Cấu hình ứng dụng
+  ├── features/         # Các tính năng
+  │   ├── auth/        # Tính năng xác thực
+  │   └── home/        # Tính năng trang chủ
+  └── main.dart        # Entry point
+```

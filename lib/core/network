@@ -1,0 +1,328 @@
+import 'dart:convert';
+import 'dart:io' if (dart.library.js) 'dart:html';
+
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:musa_app/config/env_config.dart';
+import 'package:musa_app/core/error/exceptions.dart';
+import 'package:musa_app/core/error/api_error_type.dart';
+import 'package:musa_app/core/web_utils.dart' 
+  if (dart.library.io) 'package:musa_app/core/io_utils.dart';
+
+// Chỉ import js_util khi chạy trên web
+import 'js_util_stub.dart'
+  if (dart.library.js) 'package:musa_app/core/js_util_web.dart';
+
+class ApiError {
+  final String message;
+  final int? statusCode;
+  final ApiErrorType type;
+  final dynamic data;
+
+  ApiError({
+    required this.message,
+    this.statusCode,
+    required this.type,
+    this.data,
+  });
+
+  String get userFriendlyMessage {
+    switch (type) {
+      case ApiErrorType.network:
+        return 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet và thử lại.';
+      case ApiErrorType.server:
+        return 'Lỗi máy chủ. Vui lòng thử lại sau.';
+      case ApiErrorType.auth:
+        return 'Lỗi xác thực. Vui lòng đăng nhập lại.';
+      case ApiErrorType.validation:
+        return message; // Giữ nguyên thông báo gốc cho lỗi xác thực dữ liệu
+      case ApiErrorType.notFound:
+        return 'Không tìm thấy tài nguyên yêu cầu.';
+      case ApiErrorType.timeout:
+        return 'Yêu cầu đã hết thời gian. Vui lòng thử lại.';
+      case ApiErrorType.cors:
+        return 'Lỗi CORS. Máy chủ không cho phép truy cập từ ứng dụng này.';
+      case ApiErrorType.unknown:
+      default:
+        return 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
+    }
+  }
+}
+
+class ApiClient {
+  final Dio _dio;
+  final String baseUrl;
+  
+  ApiClient({required this.baseUrl, Dio? dio})
+      : _dio = dio ?? Dio() {
+    // Always set baseUrl
+    _dio.options.baseUrl = baseUrl;
+    
+    _dio.options.connectTimeout = const Duration(seconds: 15);
+    _dio.options.receiveTimeout = const Duration(seconds: 15);
+    _dio.options.headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    
+    // Logging interceptor
+    if (kDebugMode) {
+      _dio.interceptors.add(LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+      ));
+    }
+    
+    // Add interceptors to handle errors
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          print('Requesting: ${options.baseUrl}${options.path}');
+          
+          // Don't try to use CORS proxy for localhost connections
+          if (kIsWeb && baseUrl.contains('localhost')) {
+            print('Connecting directly to localhost, no proxy needed');
+          }
+          
+          return handler.next(options);
+        },
+        onError: (DioException e, handler) {
+          if (kIsWeb && e.type == DioExceptionType.connectionError) {
+            print('Error detected: ${e.message}');
+            
+            if (baseUrl.contains('localhost')) {
+              // For localhost backend in web, this is likely a CORS issue
+              print('Localhost backend CORS issue detected.');
+              print('To fix this: Configure your backend server to allow CORS requests.');
+              
+              handler.resolve(
+                Response(
+                  requestOptions: e.requestOptions,
+                  statusCode: 499, // Custom status code for CORS
+                  data: {
+                    'message': 'CORS Error: You need to configure your backend server to allow CORS requests. '
+                      'Add appropriate CORS headers to your server response.'
+                  }
+                )
+              );
+              return;
+            }
+            
+            handler.resolve(
+              Response(
+                requestOptions: e.requestOptions,
+                statusCode: 500,
+                data: {
+                  'message': 'Network Error: Could not connect to the server. '
+                      'Please check your connection and try again.'
+                }
+              )
+            );
+            return;
+          }
+          handler.next(e);
+        },
+      ),
+    );
+  }
+  
+  void setAuthToken(String token) {
+    _dio.options.headers['Authorization'] = 'Bearer $token';
+  }
+  
+  void clearAuthToken() {
+    _dio.options.headers.remove('Authorization');
+  }
+  
+  Future<dynamic> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    try {
+      final response = await _dio.get(
+        path,
+        queryParameters: queryParameters,
+      );
+      return _handleResponse(response);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    } catch (e) {
+      throw ServerException(
+        message: 'Lỗi không xác định: ${e.toString()}',
+        errorType: ApiErrorType.unknown,
+      );
+    }
+  }
+  
+  Future<dynamic> post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    try {
+      final response = await _dio.post(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+      );
+      return _handleResponse(response);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    } catch (e) {
+      throw ServerException(
+        message: 'Lỗi không xác định: ${e.toString()}',
+        errorType: ApiErrorType.unknown,
+      );
+    }
+  }
+  
+  Future<dynamic> put(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    try {
+      final response = await _dio.put(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+      );
+      return _handleResponse(response);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    } catch (e) {
+      throw ServerException(
+        message: 'Lỗi không xác định: ${e.toString()}',
+        errorType: ApiErrorType.unknown,
+      );
+    }
+  }
+  
+  Future<dynamic> delete(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    try {
+      final response = await _dio.delete(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+      );
+      return _handleResponse(response);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    } catch (e) {
+      throw ServerException(
+        message: 'Lỗi không xác định: ${e.toString()}',
+        errorType: ApiErrorType.unknown,
+      );
+    }
+  }
+  
+  dynamic _handleResponse(Response response) {
+    if (response.statusCode! >= 200 && response.statusCode! < 300) {
+      return response.data;
+    } else {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        error: 'Server error with status code: ${response.statusCode}',
+      );
+    }
+  }
+  
+  Exception _handleError(DioException e) {
+    // Xác định loại lỗi
+    ApiErrorType errorType = ApiErrorType.unknown;
+    String errorMessage = 'Đã xảy ra lỗi không xác định';
+    
+    // Special handling for CORS error we detected in the interceptor
+    if (e.response?.statusCode == 499) {
+      errorType = ApiErrorType.cors;
+      errorMessage = e.response?.data?['message'] ?? 'CORS Error occurred';
+      return NetworkException(
+        statusCode: 499,
+        message: errorMessage,
+        errorType: errorType,
+      );
+    }
+    
+    if (e.response != null) {
+      final statusCode = e.response!.statusCode;
+      
+      // Phân loại lỗi theo mã trạng thái
+      if (statusCode == 400) {
+        errorType = ApiErrorType.validation;
+      } else if (statusCode == 401 || statusCode == 403) {
+        errorType = ApiErrorType.auth;
+      } else if (statusCode == 404) {
+        errorType = ApiErrorType.notFound;
+      } else if (statusCode! >= 500) {
+        errorType = ApiErrorType.server;
+      }
+      
+      // Trích xuất thông báo lỗi từ phản hồi
+      var data = e.response!.data;
+      if (data is Map<String, dynamic>) {
+        errorMessage = data['message'] ?? errorMessage;
+        
+        // Kiểm tra và xử lý các trường hợp lỗi cụ thể
+        if (data.containsKey('errors') && data['errors'] is Map<String, dynamic>) {
+          // Xử lý lỗi xác thực chi tiết
+          final errors = data['errors'] as Map<String, dynamic>;
+          final errorsList = <String>[];
+          
+          errors.forEach((key, value) {
+            if (value is List) {
+              errorsList.addAll(value.map((e) => e.toString()));
+            } else if (value is String) {
+              errorsList.add(value);
+            }
+          });
+          
+          if (errorsList.isNotEmpty) {
+            errorMessage = errorsList.join('. ');
+          }
+        }
+      }
+      
+      return ServerException(
+        message: errorMessage,
+        statusCode: statusCode,
+        errorType: errorType,
+        data: e.response?.data,
+      );
+    } else if (e.type == DioExceptionType.connectionTimeout ||
+               e.type == DioExceptionType.receiveTimeout ||
+               e.type == DioExceptionType.sendTimeout) {
+      errorType = ApiErrorType.timeout;
+      errorMessage = 'Yêu cầu đã hết thời gian. Vui lòng thử lại.';
+    } else if (!kIsWeb && e.error is Object && e.error.toString().contains('SocketException')) {
+      errorType = ApiErrorType.network;
+      errorMessage = 'Không có kết nối mạng. Vui lòng kiểm tra kết nối.';
+    } else if (kIsWeb && e.type == DioExceptionType.connectionError) {
+      // CORS error in web
+      errorType = ApiErrorType.cors;
+      errorMessage = 'Lỗi kết nối mạng.';
+      
+      if (baseUrl.contains('localhost')) {
+        errorMessage = 'Lỗi CORS: Máy chủ backend cần cho phép các yêu cầu cross-origin từ trình duyệt.\n'
+            'Cần thêm các header CORS thích hợp vào phản hồi từ máy chủ.';
+      }
+    }
+    
+    if (errorType == ApiErrorType.network) {
+      return NetworkException(
+        statusCode: 0,
+        message: errorMessage,
+        errorType: errorType,
+      );
+    } else {
+      return ServerException(
+        message: errorMessage,
+        errorType: errorType,
+      );
+    }
+  }
+}
