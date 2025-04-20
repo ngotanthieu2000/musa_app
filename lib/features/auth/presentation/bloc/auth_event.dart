@@ -50,8 +50,9 @@ class AuthRefreshTokenEvent extends AuthEvent {
 
 class AuthGetCurrentUserEvent extends AuthEvent {}
 
+// Remove guest mode events
 // Event to enter guest mode without authentication
-class AuthEnterGuestModeEvent extends AuthEvent {}
+// class AuthEnterGuestModeEvent extends AuthEvent {}
 
 // Event to exit guest mode and return to unauthenticated state
-class AuthExitGuestModeEvent extends AuthEvent {} 
+// class AuthExitGuestModeEvent extends AuthEvent {} 

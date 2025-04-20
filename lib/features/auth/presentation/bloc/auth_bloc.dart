@@ -44,8 +44,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLogoutEvent>(_onAuthLogout);
     on<AuthRefreshTokenEvent>(_onAuthRefreshToken);
     on<AuthGetCurrentUserEvent>(_onAuthGetCurrentUser);
-    on<AuthEnterGuestModeEvent>(_onEnterGuestMode);
-    on<AuthExitGuestModeEvent>(_onExitGuestMode);
   }
   
   Future<void> _onAuthCheckStatus(
@@ -182,38 +180,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) => emit(AuthUnauthenticated()),
       (user) => emit(AuthAuthenticated(user: user)),
     );
-  }
-  
-  // Handler for guest mode
-  Future<void> _onEnterGuestMode(
-    AuthEnterGuestModeEvent event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-    
-    // No actual authentication needed, just transition to guest mode
-    emit(AuthGuestMode());
-    
-    // Log the action for analytics purposes
-    if (kDebugMode) {
-      print('User entered guest mode');
-    }
-  }
-  
-  // Handler for exiting guest mode
-  Future<void> _onExitGuestMode(
-    AuthExitGuestModeEvent event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-    
-    // No actual authentication needed, just transition to unauthenticated state
-    emit(AuthUnauthenticated());
-    
-    // Log the action for analytics purposes
-    if (kDebugMode) {
-      print('User exited guest mode');
-    }
   }
   
   String _mapFailureToMessage(Failure failure) {

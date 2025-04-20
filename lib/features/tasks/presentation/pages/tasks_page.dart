@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/tasks_bloc.dart';
-import '../widgets/task_list.dart';
-import '../widgets/add_task_button.dart';
 
 class TasksPage extends StatelessWidget {
   const TasksPage({super.key});
@@ -13,29 +9,31 @@ class TasksPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Tasks'),
       ),
-      body: BlocBuilder<TasksBloc, TasksState>(
-        builder: (context, state) {
-          if (state is TasksLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state is TasksError) {
-            return Center(child: Text(state.message));
-          }
-
-          if (state is TasksLoaded) {
-            return Column(
-              children: [
-                Expanded(
-                  child: TaskList(tasks: state.tasks),
-                ),
-                const AddTaskButton(),
-              ],
-            );
-          }
-
-          return const Center(child: Text('No tasks found'));
-        },
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.task_alt, size: 64, color: Colors.blue),
+            const SizedBox(height: 16),
+            const Text(
+              'Tasks Page',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Manage your tasks here',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Go Back'),
+            ),
+          ],
+        ),
       ),
     );
   }

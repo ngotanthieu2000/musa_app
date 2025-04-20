@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -43,34 +40,31 @@ class WelcomePage extends StatelessWidget {
                   color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
-              const Spacer(),
-              BlocListener<AuthBloc, AuthState>(
-                listener: (context, state) {
-                  // When state changes to guest mode, navigate to home
-                  if (state is AuthGuestMode) {
-                    context.go('/');
-                  }
-                },
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Dispatch event to enter guest mode
-                    debugPrint('Dispatching AuthEnterGuestModeEvent');
-                    context.read<AuthBloc>().add(AuthEnterGuestModeEvent());
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
-                    textStyle: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  child: const Text('Continue without signing in'),
+              const SizedBox(height: 24),
+              Text(
+                'Please sign in to use all features',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w500,
                 ),
+              ),
+              const Spacer(),
+              ElevatedButton(
+                onPressed: () => context.go('/login'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  textStyle: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                child: const Text('Sign In'),
               ),
               const SizedBox(height: 16),
               OutlinedButton(
-                onPressed: () => context.go('/login'),
+                onPressed: () => context.go('/register'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   side: BorderSide(color: theme.colorScheme.primary),
@@ -78,7 +72,7 @@ class WelcomePage extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                child: const Text('Sign In / Register'),
+                child: const Text('Create Account'),
               ),
               const SizedBox(height: 48),
             ],

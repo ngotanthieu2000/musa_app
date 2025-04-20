@@ -23,6 +23,7 @@ import 'features/auth/presentation/widgets/auth_wrapper.dart';
 import 'features/home/presentation/pages/home_page.dart';
 import 'features/splash/presentation/pages/splash_page.dart';
 import 'features/welcome/presentation/pages/welcome_page.dart';
+import 'features/tasks/presentation/pages/tasks_page.dart';
 import 'injection_container.dart' as di;
 
 class App extends StatelessWidget {
@@ -78,6 +79,10 @@ class _AppViewState extends State<AppView> {
           path: '/',
           builder: (context, state) => const HomePage(),
         ),
+        GoRoute(
+          path: '/tasks',
+          builder: (context, state) => const TasksPage(),
+        ),
       ],
       initialLocation: '/splash',
       debugLogDiagnostics: true,
@@ -98,31 +103,27 @@ class _AppViewState extends State<AppView> {
             return '/';
           }
           
-          if (authState is AuthUnauthenticated) {
-            debugPrint('User is unauthenticated, redirecting to welcome page');
-            return '/welcome';
-          }
-          
-          if (authState is AuthGuestMode) {
-            debugPrint('User is in guest mode, redirecting to home page');
-            return '/';
-          }
+          // Always redirect to welcome page if not authenticated
+          debugPrint('User is not authenticated, redirecting to welcome page');
+          return '/welcome';
         }
         
         // Allow direct access to welcome, login and register pages
         if (state.uri.path == '/welcome' || 
             state.uri.path == '/login' || 
             state.uri.path == '/register') {
-          // Don't redirect if already authenticated or in guest mode and trying to go to login or register
-          // This allows users to switch accounts or register new ones
+          // If already authenticated and trying to go to login page, redirect to home
+          if (authState is AuthAuthenticated) {
+            return '/';
+          }
           return null;
         }
         
         // For home page and other protected routes
         if (state.uri.path == '/' || state.uri.path.startsWith('/dashboard')) {
-          // If authenticated or in guest mode, allow access
-          if (authState is AuthAuthenticated || authState is AuthGuestMode) {
-            debugPrint('User is authenticated or in guest mode, allowing access to ${state.uri.path}');
+          // If authenticated, allow access
+          if (authState is AuthAuthenticated) {
+            debugPrint('User is authenticated, allowing access to ${state.uri.path}');
             return null;
           }
           
@@ -131,9 +132,9 @@ class _AppViewState extends State<AppView> {
             return null;
           }
           
-          // For root path when not authenticated, show welcome page
-          debugPrint('User is not authenticated, redirecting to welcome page');
-          return '/welcome';
+          // For root path when not authenticated, show login page
+          debugPrint('User is not authenticated, redirecting to login page');
+          return '/login';
         }
         
         return null; // No redirect needed

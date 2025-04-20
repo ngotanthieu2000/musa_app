@@ -22,9 +22,6 @@ class AuthAuthenticated extends AuthState {
 
 class AuthUnauthenticated extends AuthState {}
 
-// State for when user is browsing as a guest without authentication
-class AuthGuestMode extends AuthState {}
-
 class AuthError extends AuthState {
   final String message;
   

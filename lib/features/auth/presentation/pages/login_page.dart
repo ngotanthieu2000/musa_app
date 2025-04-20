@@ -101,273 +101,153 @@ class _LoginPageState extends State<LoginPage> {
   
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    
     return Scaffold(
-      appBar: const MusaAppBar(
-        title: 'Sign In',
-        showBackButton: false,
-      ),
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
-            // Navigate to home page on successful authentication
+            context.go('/');
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Login successful! Redirecting to home page...'),
+                content: Text('Login successful!'),
                 backgroundColor: Colors.green,
               ),
             );
-            Future.delayed(const Duration(milliseconds: 500), () {
-              GoRouter.of(context).go('/');
-            });
-          } else if (state is AuthGuestMode) {
-            // Navigate to home page in guest mode
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Entering guest mode...'),
-                backgroundColor: Colors.blue,
-              ),
-            );
-            Future.delayed(const Duration(milliseconds: 500), () {
-              GoRouter.of(context).go('/');
-            });
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Login failed', style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text(state.message),
-                    const Text('Please try again or continue as guest', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
+                content: Text(state.message),
                 backgroundColor: Colors.red,
-                duration: const Duration(seconds: 5),
               ),
             );
           }
         },
         builder: (context, state) {
           return SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppDimensions.spacingXL),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Logo and title
-                        Center(
-                          child: Icon(
-                            Icons.account_circle,
-                            size: 80,
-                            color: colorScheme.primary,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 32),
+                      Text(
+                        'Login',
+                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Welcome back! Please login to continue.',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                      const SizedBox(height: 32),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: const Icon(Icons.email),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        const SizedBox(height: AppDimensions.spacingL),
-                        Text(
-                          'Welcome Back',
-                          style: textTheme.headlineMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: AppDimensions.spacingS),
-                        Text(
-                          'Sign in to continue',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: AppDimensions.spacingXXL),
-                        
-                        // Login form
-                        AppTextField(
-                          controller: _emailController,
-                          label: 'Email',
-                          hint: 'Enter your email',
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          validator: _validateEmail,
-                        ),
-                        const SizedBox(height: AppDimensions.spacingL),
-                        AppTextField(
-                          controller: _passwordController,
-                          label: 'Password',
-                          hint: 'Enter your password',
-                          obscureText: !_isPasswordVisible,
-                          textInputAction: TextInputAction.done,
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          validator: _validatePassword,
+                        validator: _validateEmail,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: !_isPasswordVisible,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: const Icon(Icons.lock),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _isPasswordVisible
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
                             ),
                             onPressed: _togglePasswordVisibility,
                           ),
-                        ),
-                        const SizedBox(height: AppDimensions.spacingM),
-                        
-                        // Forgot password
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () {
-                              // TODO: Navigate to forgot password
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Feature under development'),
-                                ),
-                              );
-                            },
-                            child: Text(
-                              'Forgot Password?',
-                              style: TextStyle(color: colorScheme.primary),
-                            ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        const SizedBox(height: AppDimensions.spacingL),
-                        
-                        // Login button
-                        AppButton(
-                          text: 'Sign In',
-                          isFullWidth: true,
-                          isLoading: state is AuthLoading,
-                          onPressed: _login,
-                          type: AppButtonType.primary,
-                        ),
-                        const SizedBox(height: AppDimensions.spacingM),
-                        
-                        // Guest login button
-                        AppButton(
-                          text: 'Continue as Guest',
-                          isFullWidth: true,
+                        validator: _validatePassword,
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
                           onPressed: () {
-                            context.read<AuthBloc>().add(AuthEnterGuestModeEvent());
+                            // Navigate to forgot password page
                           },
-                          type: AppButtonType.secondary,
+                          child: const Text('Forgot Password?'),
                         ),
-                        const SizedBox(height: AppDimensions.spacingM),
-                        
-                        // Use test credentials
-                        Center(
-                          child: TextButton.icon(
-                            icon: const Icon(Icons.code, size: 16),
-                            label: const Text('Use Test Credentials'),
-                            onPressed: () {
-                              // Fill with test credentials
-                              _emailController.text = 'test@example.com';
-                              _passwordController.text = 'password123';
-                              // Show hint
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Test credentials filled. Press Sign In to continue.'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            },
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: state is AuthLoading
+                            ? null
+                            : () {
+                                if (_formKey.currentState!.validate()) {
+                                  context.read<AuthBloc>().add(
+                                        AuthLoginEvent(
+                                          email: _emailController.text,
+                                          password: _passwordController.text,
+                                        ),
+                                      );
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        const SizedBox(height: AppDimensions.spacingS),
-                        
-                        // Register
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Don't have an account?",
-                              style: textTheme.bodyMedium,
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                context.go('/register');
-                              },
-                              child: Text(
-                                'Sign Up',
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.primary,
+                        child: state is AuthLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : const Text(
+                                'Sign In',
+                                style: TextStyle(
+                                  fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: AppDimensions.spacingL),
-                        
-                        // Or login with
-                        Row(
-                          children: [
-                            Expanded(child: Divider()),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: AppDimensions.spacingM,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildContinueWithoutSignIn(),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Don't have an account? ",
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              context.go('/register');
+                            },
+                            child: Text(
+                              'Sign Up',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
                               ),
-                              child: Text(
-                                'Or sign in with',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
                             ),
-                            Expanded(child: Divider()),
-                          ],
-                        ),
-                        const SizedBox(height: AppDimensions.spacingL),
-                        
-                        // Social login buttons
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildSocialButton(
-                              icon: Icons.g_mobiledata,
-                              color: Colors.redAccent,
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Feature under development'),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: AppDimensions.spacingL),
-                            _buildSocialButton(
-                              icon: Icons.facebook,
-                              color: Colors.blue,
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Feature under development'),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: AppDimensions.spacingL),
-                            _buildSocialButton(
-                              icon: Icons.apple,
-                              color: Colors.black,
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Feature under development'),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -377,26 +257,16 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-  
-  Widget _buildSocialButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return Material(
-      elevation: 1,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.hardEdge,
-      color: Colors.white,
-      child: InkWell(
-        onTap: onPressed,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Icon(
-            icon,
-            size: 28,
-            color: color,
-          ),
+
+  Widget _buildContinueWithoutSignIn() {
+    return TextButton(
+      onPressed: () {
+        context.go('/');
+      },
+      child: Text(
+        'Continue without signing in',
+        style: TextStyle(
+          color: Colors.grey[600],
         ),
       ),
     );
