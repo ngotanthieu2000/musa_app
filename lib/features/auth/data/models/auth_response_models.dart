@@ -38,7 +38,7 @@ class AuthResponse extends BaseResponse {
   final UserModel? user;
   
   AuthResponse({
-    required bool success,
+    bool success = true,
     String? message,
     int? statusCode,
     this.accessToken,
@@ -55,37 +55,53 @@ class AuthResponse extends BaseResponse {
     // For debugging
     print('Raw AuthResponse JSON: $json');
     
-    // Handle case when response comes in a nested structure
-    if (json.containsKey('tokens') && json['tokens'] is Map<String, dynamic>) {
-      var tokens = json['tokens'] as Map<String, dynamic>;
-      var authJson = Map<String, dynamic>.from(json);
+    // Xây dựng Map chuẩn hóa
+    var standardJson = Map<String, dynamic>.from(json);
+    
+    // Đảm bảo có success field
+    if (!standardJson.containsKey('success')) {
+      standardJson['success'] = true;
+    }
+    
+    // Xử lý tokens nếu nằm trong object con
+    if (standardJson.containsKey('tokens') && standardJson['tokens'] is Map) {
+      var tokens = standardJson['tokens'] as Map<String, dynamic>;
       
-      // Move tokens fields to top level
-      authJson['access_token'] = tokens['access_token'] ?? tokens['accessToken'];
-      authJson['refresh_token'] = tokens['refresh_token'] ?? tokens['refreshToken'];
-      authJson['expires_at'] = tokens['expires_at'] ?? tokens['expiresAt'];
-      
-      // Add default success value if not present
-      if (!authJson.containsKey('success')) {
-        authJson['success'] = true;
+      // Đưa tokens lên cấp cao nhất
+      standardJson['access_token'] = tokens['access_token'] ?? 
+                                    tokens['accessToken'] ??
+                                    standardJson['access_token'];
+      standardJson['refresh_token'] = tokens['refresh_token'] ?? 
+                                     tokens['refreshToken'] ??
+                                     standardJson['refresh_token'];
+      standardJson['expires_at'] = tokens['expires_at'] ?? 
+                                  tokens['expiresAt'] ??
+                                  standardJson['expires_at'];
+    }
+    
+    // Đảm bảo user object được xử lý đúng
+    if (standardJson.containsKey('user') && standardJson['user'] is Map) {
+      try {
+        var userJson = standardJson['user'] as Map<String, dynamic>;
+        var user = UserModel.fromJson(userJson);
+        standardJson['user'] = user.toJson();
+      } catch (e) {
+        print('Error parsing user in AuthResponse: $e');
+        standardJson.remove('user');
       }
-      
-      return _$AuthResponseFromJson(authJson);
     }
     
-    // Handle flat structure where token fields are at top level
-    if (!json.containsKey('success') && 
-        (json.containsKey('access_token') || json.containsKey('accessToken'))) {
-      var authJson = Map<String, dynamic>.from(json);
-      authJson['success'] = true;
-      return _$AuthResponseFromJson(authJson);
-    }
-    
-    return _$AuthResponseFromJson(json);
+    print('Standardized JSON for AuthResponse: $standardJson');
+    return _$AuthResponseFromJson(standardJson);
   }
   
   @override
   Map<String, dynamic> toJson() => _$AuthResponseToJson(this);
+  
+  @override
+  String toString() {
+    return 'AuthResponse{success: $success, accessToken: ${accessToken != null ? '[present]' : 'null'}, refreshToken: ${refreshToken != null ? '[present]' : 'null'}, user: $user}';
+  }
 }
 
 // Model cho response refresh token

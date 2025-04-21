@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:dartz/dartz.dart' hide State;
 
 import 'core/error/failures.dart';
@@ -21,136 +24,93 @@ import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/register_page.dart';
 import 'features/auth/presentation/widgets/auth_wrapper.dart';
 import 'features/home/presentation/pages/home_page.dart';
+import 'features/profile/presentation/pages/profile_page.dart';
 import 'features/splash/presentation/pages/splash_page.dart';
 import 'features/welcome/presentation/pages/welcome_page.dart';
 import 'features/tasks/presentation/pages/tasks_page.dart';
-import 'injection_container.dart' as di;
+import 'core/theme/app_colors.dart';
+import 'core/di/injection_container.dart' as di;
+import 'features/profile/presentation/bloc/profile_bloc.dart';
+import 'features/navigation/presentation/bloc/navigation_bloc.dart';
+import 'routes/app_router.dart';
 
-class App extends StatelessWidget {
-  const App({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider<AuthBloc>(
-          create: (context) =>
-              di.sl<AuthBloc>()..add(AuthCheckStatusEvent()),
-        ),
-      ],
-      child: const AppView(),
-    );
-  }
-}
-
-class AppView extends StatefulWidget {
-  const AppView({super.key});
+class App extends StatefulWidget {
+  const App({Key? key}) : super(key: key);
 
   @override
-  State<AppView> createState() => _AppViewState();
+  State<App> createState() => _AppState();
 }
 
-class _AppViewState extends State<AppView> {
-  late final GoRouter _router;
-  final _refreshNotifier = GoRouterRefreshNotifier();
+class _AppState extends State<App> {
+  StreamSubscription<AuthState>? _authChangeSub;
 
   @override
   void initState() {
     super.initState();
-    _router = GoRouter(
-      routes: [
-        GoRoute(
-          path: '/splash',
-          builder: (context, state) => const SplashPage(),
-        ),
-        GoRoute(
-          path: '/welcome',
-          builder: (context, state) => const WelcomePage(),
-        ),
-        GoRoute(
-          path: '/login',
-          builder: (context, state) => const LoginPage(),
-        ),
-        GoRoute(
-          path: '/register',
-          builder: (context, state) => const RegisterPage(),
-        ),
-        GoRoute(
-          path: '/',
-          builder: (context, state) => const HomePage(),
-        ),
-        GoRoute(
-          path: '/tasks',
-          builder: (context, state) => const TasksPage(),
-        ),
-      ],
-      initialLocation: '/splash',
-      debugLogDiagnostics: true,
-      refreshListenable: _refreshNotifier,
-      redirect: (BuildContext context, GoRouterState state) {
-        final authBloc = BlocProvider.of<AuthBloc>(context);
-        final authState = authBloc.state;
-        
-        // Handle splash screen
-        if (state.uri.path == '/splash') {
-          if (authState is AuthInitial || authState is AuthLoading) {
-            debugPrint('Loading auth status, staying at splash');
-            return null; // Stay on splash while loading
-          }
-          
-          if (authState is AuthAuthenticated) {
-            debugPrint('User is authenticated, redirecting to home page');
-            return '/';
-          }
-          
-          // Always redirect to welcome page if not authenticated
-          debugPrint('User is not authenticated, redirecting to welcome page');
-          return '/welcome';
-        }
-        
-        // Allow direct access to welcome, login and register pages
-        if (state.uri.path == '/welcome' || 
-            state.uri.path == '/login' || 
-            state.uri.path == '/register') {
-          // If already authenticated and trying to go to login page, redirect to home
-          if (authState is AuthAuthenticated) {
-            return '/';
-          }
-          return null;
-        }
-        
-        // For home page and other protected routes
-        if (state.uri.path == '/' || state.uri.path.startsWith('/dashboard')) {
-          // If authenticated, allow access
-          if (authState is AuthAuthenticated) {
-            debugPrint('User is authenticated, allowing access to ${state.uri.path}');
-            return null;
-          }
-          
-          // If user is on loading or initial state, don't redirect
-          if (authState is AuthLoading || authState is AuthInitial) {
-            return null;
-          }
-          
-          // For root path when not authenticated, show login page
-          debugPrint('User is not authenticated, redirecting to login page');
-          return '/login';
-        }
-        
-        return null; // No redirect needed
-      },
-    );
+  }
+
+  @override
+  void dispose() {
+    _authChangeSub?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Musa App',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      routerConfig: _router,
-      debugShowCheckedModeBanner: false,
+    // Apply Material 3 status bar style
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+    );
+
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthBloc>.value(
+          value: di.sl<AuthBloc>()..add(AuthCheckStatusEvent()),
+        ),
+        BlocProvider<ProfileBloc>(
+          create: (context) => di.sl<ProfileBloc>(),
+        ),
+        BlocProvider<NavigationBloc>(
+          create: (context) => di.sl<NavigationBloc>(),
+        ),
+      ],
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        title: 'Musa App',
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
+        routerConfig: AppRouter.router,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('vi', 'VN'),
+          Locale('en', 'US'),
+        ],
+        locale: const Locale('vi', 'VN'),
+      ),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Listen to auth state changes to update router
+    _authChangeSub = di.sl<AuthBloc>().stream.listen(
+      (state) {
+        if (state is AuthAuthenticated || state is AuthUnauthenticated) {
+          setState(() {
+            // This will trigger a rebuild and re-evaluate routes
+          });
+        }
+      },
     );
   }
 }

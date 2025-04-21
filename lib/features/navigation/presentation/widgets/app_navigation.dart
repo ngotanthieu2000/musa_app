@@ -1,56 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../tasks/presentation/pages/tasks_page.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
+import '../bloc/navigation_bloc.dart';
+import 'bottom_nav_bar.dart';
+import '../../../../core/di/injection_container.dart' as di;
 
-class AppNavigation extends StatefulWidget {
+class AppNavigation extends StatelessWidget {
   const AppNavigation({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _AppNavigationState createState() => _AppNavigationState();
-}
-
-class _AppNavigationState extends State<AppNavigation> {
-  int _currentIndex = 0;
-
-  final List<Widget> _pages = [
-    const HomePage(),
-    const TasksPage(),
-    const ChatPage(),
-    // ProfilePage(),
-  ];
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+    final List<Widget> pages = [
+      const HomePage(),
+      const TasksPage(),
+      const ChatPage(),
+    ];
+
+    return BlocProvider<NavigationBloc>.value(
+      value: di.sl<NavigationBloc>(),
+      child: BlocBuilder<NavigationBloc, NavigationState>(
+        builder: (context, state) {
+          return Scaffold(
+            body: pages[state.currentIndex],
+            bottomNavigationBar: BottomNavBar(
+              currentIndex: state.currentIndex,
+              onTap: (index) {
+                context.read<NavigationBloc>().add(NavigationTabChanged(index));
+              },
+            ),
+          );
         },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.task),
-            label: 'Tasks',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Chat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
       ),
     );
   }

@@ -1,19 +1,24 @@
 import 'dart:async';
 import 'package:dartz/dartz.dart';
+import 'package:injectable/injectable.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/api_error_type.dart';
-import '../../../../core/network';
+import '../../../../core/network_helper.dart';
 import '../../../../core/storage/secure_storage.dart';
+import '../../../../core/constants/api_constants.dart';
 import '../../domain/entities/auth_tokens.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../datasources/auth_remote_data_source.dart';
 import '../models/auth_tokens_model.dart';
 import '../models/user_model.dart';
 
+@LazySingleton(as: AuthRepository)
 class AuthRepositoryImpl implements AuthRepository {
   final ApiClient _apiClient;
   final SecureStorage _secureStorage;
+  final AuthRemoteDataSource _remoteDataSource;
   
   static const String _keyAccessToken = 'access_token';
   static const String _keyRefreshToken = 'refresh_token';
@@ -22,8 +27,10 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required ApiClient apiClient,
     required SecureStorage secureStorage,
+    required AuthRemoteDataSource remoteDataSource,
   })  : _apiClient = apiClient,
-        _secureStorage = secureStorage;
+        _secureStorage = secureStorage,
+        _remoteDataSource = remoteDataSource;
   
   @override
   Future<Either<Failure, User>> register({
@@ -32,69 +39,26 @@ class AuthRepositoryImpl implements AuthRepository {
     String? name,
   }) async {
     try {
-      final registerResponse = await _apiClient.post(
-        '/auth/register',
-        data: {
-          'email': email,
-          'password': password,
-          'name': name ?? email.split('@').first,
-        },
-      );
+      final response = await _remoteDataSource.register(name ?? email.split('@').first, email, password);
       
-      // Kiểm tra nếu đăng ký thành công nhưng không có thông tin token và user
-      if (registerResponse is Map<String, dynamic> && 
-          registerResponse.containsKey('message') && 
-          registerResponse['message'] == 'Registration successful') {
-        
-        // Đăng ký thành công, thực hiện đăng nhập để lấy token và user info
-        return login(email: email, password: password);
+      if (response.user != null) {
+        return Right(response.user!);
+      } else {
+        return Left(ServerFailure(
+          message: 'User data is missing from the response',
+          errorType: ApiErrorType.unknown,
+        ));
       }
-      
-      // Trường hợp response chứa cả token và user info
-      if (registerResponse is Map<String, dynamic> && 
-          registerResponse.containsKey('tokens') && 
-          registerResponse.containsKey('user')) {
-        
-        // Save tokens
-        final tokensModel = AuthTokensModel.fromJson(registerResponse['tokens']);
-        await _saveTokens(tokensModel);
-        
-        // Set auth token for future requests
-        _apiClient.setAuthToken(tokensModel.accessToken);
-        
-        // Return user
-        final userModel = UserModel.fromJson(registerResponse['user']);
-        return Right(userModel);
-      }
-      
-      // Response không đúng định dạng
-      return Left(ServerFailure(
-        message: 'Invalid server response format',
-        errorType: ApiErrorType.server
-      ));
     } on ServerException catch (e) {
       return Left(ServerFailure(
-        message: e.message, 
-        statusCode: e.statusCode,
-        errorType: e.errorType,
-        data: e.data
-      ));
-    } on NetworkException catch (e) {
-      return Left(NetworkFailure(
         message: e.message,
         errorType: e.errorType,
-        data: e.details
-      ));
-    } on ValidationException catch (e) {
-      return Left(ValidationFailure(
-        message: e.message,
-        errors: e.errors,
-        data: e.details
+        data: e.data,
       ));
     } catch (e) {
-      return Left(UnexpectedFailure(
+      return Left(ServerFailure(
         message: e.toString(),
-        data: e
+        errorType: ApiErrorType.unknown,
       ));
     }
   }
@@ -105,147 +69,91 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     try {
-      print('Attempting login for: $email');
-      final response = await _apiClient.post(
-        '/auth/login',
-        data: {
-          'email': email,
-          'password': password,
-        },
-      );
+      print('AuthRepositoryImpl: Calling login with email: $email');
+      final tokens = await _remoteDataSource.login(email, password);
       
-      print('Login response received: $response');
+      print('AuthRepositoryImpl: Received tokens response: $tokens');
       
-      // Extract tokens data
-      Map<String, dynamic> tokensData;
-      if (response is Map<String, dynamic>) {
-        if (response.containsKey('tokens') && response['tokens'] is Map<String, dynamic>) {
-          // Nested tokens structure
-          tokensData = response['tokens'] as Map<String, dynamic>;
-        } else if (response.containsKey('access_token') || response.containsKey('accessToken')) {
-          // Flat structure
-          tokensData = response;
-        } else {
-          print('Invalid response format. Missing tokens data.');
-          return Left(ServerFailure(
-            message: 'Invalid response format. Missing tokens data.',
-            errorType: ApiErrorType.server
-          ));
-        }
+      // Kiểm tra access token và save nếu có
+      if (tokens.accessToken != null && tokens.accessToken!.isNotEmpty) {
+        print('AuthRepositoryImpl: Saving access token');
+        await _secureStorage.saveAccessToken(tokens.accessToken!);
+        _apiClient.setAuthToken(tokens.accessToken!);
       } else {
-        print('Invalid response type: ${response.runtimeType}');
+        print('AuthRepositoryImpl: No valid access token received');
         return Left(ServerFailure(
-          message: 'Invalid response type',
-          errorType: ApiErrorType.server
+          message: 'Không nhận được access token hợp lệ',
+          errorType: ApiErrorType.auth,
         ));
       }
       
-      print('Extracted tokens data: $tokensData');
+      // Kiểm tra refresh token và save nếu có
+      if (tokens.refreshToken != null && tokens.refreshToken!.isNotEmpty) {
+        print('AuthRepositoryImpl: Saving refresh token');
+        await _secureStorage.saveRefreshToken(tokens.refreshToken!);
+      } else {
+        print('AuthRepositoryImpl: No valid refresh token received, but continuing');
+      }
       
-      // Create tokensModel, handling both snake_case and camelCase keys
-      final tokensModel = AuthTokensModel(
-        accessToken: tokensData['access_token'] ?? tokensData['accessToken'] as String,
-        refreshToken: tokensData['refresh_token'] ?? tokensData['refreshToken'] as String,
-        expiresAt: tokensData['expires_at'] != null || tokensData['expiresAt'] != null 
-          ? DateTime.parse(tokensData['expires_at'] ?? tokensData['expiresAt']) 
-          : null,
-      );
+      // Kiểm tra user và return nếu có
+      if (tokens.user != null) {
+        print('AuthRepositoryImpl: User data received: ${tokens.user}');
+        return Right(tokens.user!);
+      } 
       
-      await _saveTokens(tokensModel);
-      
-      // Set auth token for future requests
-      _apiClient.setAuthToken(tokensModel.accessToken);
-      
-      // Check for user data and return it
+      // Nếu không có user data, lấy user từ API
+      print('AuthRepositoryImpl: No user data, fetching from API');
       try {
-        // If user data is in the response
-        if (response.containsKey('user') && response['user'] is Map<String, dynamic>) {
-          final userModel = UserModel.fromJson(response['user'] as Map<String, dynamic>);
-          return Right(userModel);
-        } 
-        
-        // If no user data, create a minimal user model with available info
-        final userModel = UserModel(
-          id: 'temp-id',  // We'll refresh this later from the /me endpoint
+        final user = await _remoteDataSource.getCurrentUser();
+        return Right(user);
+      } catch (e) {
+        print('AuthRepositoryImpl: Error fetching user data: $e');
+        // Vẫn trả về thành công nếu chúng ta ít nhất có token
+        return Right(User(
+          id: '0',
           email: email,
           name: email.split('@').first,
-        );
-        return Right(userModel);
-      } catch (userError) {
-        print('Error creating user model: $userError');
-        // Return minimal user even if there's an error
-        final userModel = UserModel(
-          id: 'temp-id',
-          email: email,
-          name: email.split('@').first,
-        );
-        return Right(userModel);
+        ));
       }
     } on ServerException catch (e) {
-      print('ServerException during login: ${e.message}');
+      print('AuthRepositoryImpl: Server exception: ${e.message}');
       return Left(ServerFailure(
-        message: e.message, 
-        statusCode: e.statusCode,
-        errorType: e.errorType,
-        data: e.data
-      ));
-    } on NetworkException catch (e) {
-      print('NetworkException during login: ${e.message}');
-      return Left(NetworkFailure(
         message: e.message,
         errorType: e.errorType,
-        data: e.details
-      ));
-    } on ValidationException catch (e) {
-      return Left(ValidationFailure(
-        message: e.message,
-        errors: e.errors,
-        data: e.details
-      ));
-    } on AuthException catch (e) {
-      return Left(AuthFailure(
-        message: e.message,
-        errorType: e.errorType,
-        data: e.details
+        data: e.data,
       ));
     } catch (e) {
-      print('Unexpected error during login: $e');
-      return Left(UnexpectedFailure(
+      print('AuthRepositoryImpl: Unexpected error: $e');
+      return Left(ServerFailure(
         message: e.toString(),
-        data: e
+        errorType: ApiErrorType.unknown,
       ));
     }
   }
   
   @override
-  Future<Either<Failure, void>> logout() async {
+  Future<Either<Failure, bool>> logout() async {
     try {
-      await _apiClient.post('/auth/logout');
+      await _remoteDataSource.logout();
       
       // Clear tokens
-      await _secureStorage.deleteAll();
+      await _secureStorage.delete(_keyAccessToken);
+      await _secureStorage.delete(_keyRefreshToken);
       
-      // Clear auth token
+      // Clear the token from API client
       _apiClient.clearAuthToken();
       
-      return const Right(null);
+      return const Right(true);
     } on ServerException catch (e) {
       return Left(ServerFailure(
-        message: e.message, 
-        statusCode: e.statusCode,
-        errorType: e.errorType,
-        data: e.data
-      ));
-    } on NetworkException catch (e) {
-      return Left(NetworkFailure(
         message: e.message,
         errorType: e.errorType,
-        data: e.details
+        data: e.data,
       ));
     } catch (e) {
-      return Left(UnexpectedFailure(
+      return Left(ServerFailure(
         message: e.toString(),
-        data: e
+        errorType: ApiErrorType.unknown,
       ));
     }
   }
@@ -255,44 +163,64 @@ class AuthRepositoryImpl implements AuthRepository {
     required String refreshToken,
   }) async {
     try {
-      final response = await _apiClient.post(
-        '/auth/refresh',
-        data: {
-          'refresh_token': refreshToken,
-        },
-      );
+      print('AuthRepository: Attempting to refresh token');
       
-      // Save tokens
-      final tokensModel = AuthTokensModel.fromJson(response);
-      await _saveTokens(tokensModel);
+      // Kiểm tra refreshToken truyền vào
+      if (refreshToken.isEmpty) {
+        // Nếu không có, thử lấy từ storage
+        final currentRefreshToken = await _secureStorage.getRefreshToken();
+        
+        if (currentRefreshToken == null || currentRefreshToken.isEmpty) {
+          print('AuthRepository: No refresh token available');
+          return Left(AuthFailure(
+            message: 'Không có refresh token',
+            errorType: ApiErrorType.auth,
+          ));
+        }
+        
+        // Sử dụng token từ storage
+        refreshToken = currentRefreshToken;
+      }
       
-      // Set auth token for future requests
-      _apiClient.setAuthToken(tokensModel.accessToken);
+      print('AuthRepository: Calling refresh token API');
+      final tokens = await _remoteDataSource.refreshToken(refreshToken);
       
-      return Right(tokensModel);
+      // Lưu token mới
+      if (tokens.accessToken != null && tokens.accessToken!.isNotEmpty) {
+        print('AuthRepository: Saving new access token');
+        await _secureStorage.saveAccessToken(tokens.accessToken!);
+        _apiClient.setAuthToken(tokens.accessToken!);
+      } else {
+        print('AuthRepository: No valid access token in response');
+        return Left(AuthFailure(
+          message: 'Không nhận được access token hợp lệ',
+          errorType: ApiErrorType.auth,
+        ));
+      }
+      
+      // Lưu refresh token mới nếu có
+      if (tokens.refreshToken != null && tokens.refreshToken!.isNotEmpty) {
+        print('AuthRepository: Saving new refresh token');
+        await _secureStorage.saveRefreshToken(tokens.refreshToken!);
+      }
+      
+      return Right(AuthTokens(
+        accessToken: tokens.accessToken ?? '',
+        refreshToken: tokens.refreshToken ?? '',
+        expiresAt: tokens.expiresAt,
+      ));
     } on ServerException catch (e) {
+      print('AuthRepository: Server exception during refresh: ${e.message}');
       return Left(ServerFailure(
-        message: e.message, 
-        statusCode: e.statusCode,
-        errorType: e.errorType,
-        data: e.data
-      ));
-    } on NetworkException catch (e) {
-      return Left(NetworkFailure(
         message: e.message,
         errorType: e.errorType,
-        data: e.details
-      ));
-    } on AuthException catch (e) {
-      return Left(AuthFailure(
-        message: e.message,
-        errorType: e.errorType,
-        data: e.details
+        data: e.data,
       ));
     } catch (e) {
-      return Left(UnexpectedFailure(
+      print('AuthRepository: Unexpected error during refresh: $e');
+      return Left(ServerFailure(
         message: e.toString(),
-        data: e
+        errorType: ApiErrorType.unknown,
       ));
     }
   }
@@ -300,46 +228,18 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, User>> getCurrentUser() async {
     try {
-      // Check if we have a token
-      final token = await _secureStorage.read(_keyAccessToken);
-      if (token == null) {
-        return Left(AuthFailure(
-          message: 'User not authenticated',
-          errorType: ApiErrorType.auth
-        ));
-      }
-      
-      // Set auth token
-      _apiClient.setAuthToken(token);
-      
-      // Get user profile
-      final response = await _apiClient.get('/auth/profile');
-      
-      final userModel = UserModel.fromJson(response['user']);
-      return Right(userModel);
+      final user = await _remoteDataSource.getCurrentUser();
+      return Right(user);
     } on ServerException catch (e) {
       return Left(ServerFailure(
-        message: e.message, 
-        statusCode: e.statusCode,
-        errorType: e.errorType,
-        data: e.data
-      ));
-    } on NetworkException catch (e) {
-      return Left(NetworkFailure(
         message: e.message,
         errorType: e.errorType,
-        data: e.details
-      ));
-    } on AuthException catch (e) {
-      return Left(AuthFailure(
-        message: e.message,
-        errorType: e.errorType,
-        data: e.details
+        data: e.data,
       ));
     } catch (e) {
-      return Left(UnexpectedFailure(
+      return Left(ServerFailure(
         message: e.toString(),
-        data: e
+        errorType: ApiErrorType.unknown,
       ));
     }
   }
@@ -347,34 +247,40 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, bool>> isLoggedIn() async {
     try {
-      final token = await _secureStorage.read(_keyAccessToken);
-      if (token == null) {
-        return const Right(false);
-      }
-      
-      final expiresAtString = await _secureStorage.read(_keyExpiresAt);
-      if (expiresAtString == null) {
-        return const Right(false);
-      }
-      
-      final expiresAt = DateTime.parse(expiresAtString);
-      if (expiresAt.isBefore(DateTime.now())) {
-        // Token expired, try to refresh
-        final refreshToken = await _secureStorage.read(_keyRefreshToken);
-        if (refreshToken == null) {
-          return const Right(false);
-        }
-        
-        final refreshResult = await this.refreshToken(refreshToken: refreshToken);
-        return refreshResult.fold(
-          (_) => const Right(false),
-          (_) => const Right(true),
-        );
-      }
-      
-      return const Right(true);
+      final token = await _secureStorage.getAccessToken();
+      return Right(token != null && token.isNotEmpty);
     } catch (e) {
-      return const Right(false);
+      return Left(AuthFailure(
+        message: 'Không thể kiểm tra trạng thái đăng nhập',
+        errorType: ApiErrorType.auth,
+      ));
+    }
+  }
+  
+  @override
+  Future<Either<Failure, User>> refreshCurrentUser() async {
+    try {
+      // Get current user from API
+      final userResponse = await _remoteDataSource.getCurrentUser();
+      
+      // Update auth token for future requests
+      final token = await _secureStorage.getAccessToken();
+      if (token != null) {
+        _apiClient.setAuthToken(token);
+      }
+      
+      return Right(userResponse);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(
+        message: e.message, 
+        errorType: e.errorType,
+        data: e.data
+      ));
+    } catch (e) {
+      return Left(ServerFailure(
+        message: 'Lỗi lấy thông tin người dùng: ${e.toString()}',
+        errorType: ApiErrorType.server,
+      ));
     }
   }
   

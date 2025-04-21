@@ -250,7 +250,7 @@ class _SearchBar extends StatelessWidget {
           ),
           AppButton(
             text: 'Tìm',
-          onPressed: () {
+            onPressed: () {
               // TODO: Implement search functionality
             },
             type: AppButtonType.primary,

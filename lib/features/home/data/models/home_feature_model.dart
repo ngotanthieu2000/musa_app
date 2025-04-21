@@ -16,10 +16,10 @@ class HomeFeatureModel {
 
   factory HomeFeatureModel.fromJson(Map<String, dynamic> json) {
     return HomeFeatureModel(
-      id: json['id'],
-      title: json['title'],
-      icon: json['icon'],
-      route: json['route'],
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      icon: json['icon'] ?? '',
+      route: json['route'] ?? '',
     );
   }
 
@@ -35,8 +35,9 @@ class HomeFeatureModel {
   // Chuyển đổi sang entity
   HomeFeature toEntity() {
     return HomeFeature(
+      id: id,
       title: title,
-      icon: _mapIconStringToIconData(icon), // convert String to IconData
+      icon: icon,
       route: route,
     );
   }

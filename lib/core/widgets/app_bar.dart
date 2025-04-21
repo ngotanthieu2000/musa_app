@@ -10,6 +10,7 @@ class MusaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final IconData? actionButtonIcon;
   final VoidCallback? onActionButtonPressed;
   final String? routeOnBack;
+  final List<Widget>? actions;
   
   const MusaAppBar({
     super.key,
@@ -20,6 +21,7 @@ class MusaAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actionButtonIcon,
     this.onActionButtonPressed,
     this.routeOnBack,
+    this.actions,
   });
   
   @override
@@ -45,7 +47,7 @@ class MusaAppBar extends StatelessWidget implements PreferredSizeWidget {
               },
             )
           : null,
-      actions: [
+      actions: actions ?? [
         if (showActionButton && actionButtonText != null)
           TextButton.icon(
             icon: Icon(actionButtonIcon ?? Icons.login),

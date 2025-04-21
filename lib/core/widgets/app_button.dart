@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_dimensions.dart';
 
 enum AppButtonType {
   primary,
@@ -8,26 +9,36 @@ enum AppButtonType {
   text,
 }
 
+enum AppButtonSize {
+  small,
+  medium,
+  large,
+}
+
 class AppButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
   final AppButtonType type;
+  final AppButtonSize? size;
   final bool isFullWidth;
   final bool isLoading;
   final Widget? icon;
   final EdgeInsetsGeometry? padding;
   final double? iconSize;
+  final BorderRadius? borderRadius;
   
   const AppButton({
     Key? key,
     required this.text,
     this.onPressed,
     this.type = AppButtonType.primary,
+    this.size,
     this.isFullWidth = false,
     this.isLoading = false,
     this.icon,
     this.padding,
     this.iconSize,
+    this.borderRadius,
   }) : super(key: key);
   
   @override
@@ -35,6 +46,27 @@ class AppButton extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDarkMode = theme.brightness == Brightness.dark;
+    
+    // Xác định padding dựa trên size
+    EdgeInsetsGeometry effectivePadding = padding ?? const EdgeInsets.symmetric(vertical: 16, horizontal: 24);
+    if (padding == null && size != null) {
+      switch (size) {
+        case AppButtonSize.small:
+          effectivePadding = const EdgeInsets.symmetric(vertical: 8, horizontal: 16);
+          break;
+        case AppButtonSize.medium:
+          effectivePadding = const EdgeInsets.symmetric(vertical: 12, horizontal: 20);
+          break;
+        case AppButtonSize.large:
+          effectivePadding = const EdgeInsets.symmetric(vertical: 16, horizontal: 24);
+          break;
+        default:
+          break;
+      }
+    }
+    
+    // Xác định border radius
+    BorderRadius effectiveBorderRadius = borderRadius ?? BorderRadius.circular(12);
     
     // Choose button style based on type
     ButtonStyle buttonStyle;
@@ -44,9 +76,9 @@ class AppButton extends StatelessWidget {
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: effectiveBorderRadius,
           ),
-          padding: padding ?? const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: effectivePadding,
           textStyle: theme.textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -57,9 +89,9 @@ class AppButton extends StatelessWidget {
           backgroundColor: colorScheme.secondary,
           foregroundColor: colorScheme.onSecondary,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: effectiveBorderRadius,
           ),
-          padding: padding ?? const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: effectivePadding,
           textStyle: theme.textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -70,9 +102,9 @@ class AppButton extends StatelessWidget {
           foregroundColor: colorScheme.primary,
           side: BorderSide(color: colorScheme.primary),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: effectiveBorderRadius,
           ),
-          padding: padding ?? const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: effectivePadding,
           textStyle: theme.textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -82,9 +114,9 @@ class AppButton extends StatelessWidget {
         buttonStyle = TextButton.styleFrom(
           foregroundColor: colorScheme.primary,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: effectiveBorderRadius,
           ),
-          padding: padding ?? const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: effectivePadding,
           textStyle: theme.textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),

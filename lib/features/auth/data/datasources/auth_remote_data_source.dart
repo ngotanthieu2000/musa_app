@@ -1,5 +1,10 @@
-import '../../../../core/network';
+import 'dart:convert';
+
+import 'package:injectable/injectable.dart';
 import '../../../../core/error/exceptions.dart';
+import '../../../../core/error/api_error_type.dart';
+import '../../../../core/network_helper.dart';
+import '../../../../core/constants/api_constants.dart';
 import '../models/auth_request_models.dart';
 import '../models/auth_response_models.dart';
 import '../models/user_model.dart';
@@ -30,7 +35,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<AuthResponse> register(String name, String email, String password) async {
     try {
       final response = await apiClient.post(
-        '/auth/register',
+        '/api/v1/auth/register',
         data: {
           'name': name,
           'email': email,
@@ -40,7 +45,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       
       return AuthResponse.fromJson(response);
     } catch (e) {
-      throw ServerException(message: e.toString());
+      throw ServerException(
+        message: e.toString(),
+        errorType: ApiErrorType.server
+      );
     }
   }
   
@@ -49,7 +57,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       print('AuthRemoteDataSource: Attempting login for: $email');
       final response = await apiClient.post(
-        '/auth/login',
+        '/api/v1/auth/login',
         data: {
           'email': email,
           'password': password,
@@ -58,46 +66,53 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       
       print('AuthRemoteDataSource: Raw login response: $response');
       
-      // Add default success field if missing
-      Map<String, dynamic> processedResponse;
-      if (response is Map<String, dynamic>) {
-        processedResponse = Map<String, dynamic>.from(response);
-        if (!processedResponse.containsKey('success')) {
-          processedResponse['success'] = true;
-        }
-      } else {
+      // Đảm bảo response là Map
+      if (response is! Map<String, dynamic>) {
         print('AuthRemoteDataSource: Invalid response type: ${response.runtimeType}');
-        throw ServerException(message: 'Invalid response format');
-      }
-      
-      print('AuthRemoteDataSource: Processed response for AuthResponse: $processedResponse');
-      
-      try {
-        final authResponse = AuthResponse.fromJson(processedResponse);
-        print('AuthRemoteDataSource: Successfully parsed AuthResponse: $authResponse');
-        return authResponse;
-      } catch (parseError) {
-        print('AuthRemoteDataSource: Error parsing response: $parseError');
-        
-        // Create a fallback response with the raw tokens
-        var fallbackResponse = AuthResponse(
-          success: true,
-          accessToken: processedResponse['access_token'] ?? 
-                      (processedResponse['tokens'] is Map ? 
-                       processedResponse['tokens']['access_token'] : null),
-          refreshToken: processedResponse['refresh_token'] ?? 
-                       (processedResponse['tokens'] is Map ? 
-                        processedResponse['tokens']['refresh_token'] : null),
-          user: processedResponse['user'] is Map ? 
-                UserModel.fromJson(processedResponse['user']) : null,
+        throw ServerException(
+          message: 'Invalid response format',
+          errorType: ApiErrorType.server
         );
-        
-        print('AuthRemoteDataSource: Created fallback response: $fallbackResponse');
-        return fallbackResponse;
       }
+      
+      // Tạo bản sao để không ảnh hưởng đến dữ liệu gốc
+      Map<String, dynamic> processedResponse = Map<String, dynamic>.from(response);
+      
+      // Chắc chắn có trường success
+      if (!processedResponse.containsKey('success')) {
+        processedResponse['success'] = true;
+      }
+      
+      // Dựng UserModel từ User object trong response nếu có
+      UserModel? user;
+      if (processedResponse.containsKey('user') && processedResponse['user'] != null) {
+        try {
+          user = UserModel.fromJson(processedResponse['user']);
+        } catch (e) {
+          print('AuthRemoteDataSource: Error parsing user data: $e');
+        }
+      }
+      
+      // Tạo AuthResponse thủ công để đảm bảo đúng cấu trúc
+      var authResponse = AuthResponse(
+        success: true,
+        accessToken: processedResponse['access_token'],
+        refreshToken: processedResponse['refresh_token'],
+        user: user,
+      );
+      
+      // In log để debug
+      print('AuthRemoteDataSource: Final authResponse: $authResponse');
+      print('AuthRemoteDataSource: Token values: ${authResponse.accessToken}, ${authResponse.refreshToken}');
+      
+      return authResponse;
     } catch (e) {
+      if (e is ServerException) rethrow;
       print('AuthRemoteDataSource: Login error: $e');
-      throw ServerException(message: e.toString());
+      throw ServerException(
+        message: e.toString(),
+        errorType: ApiErrorType.server
+      );
     }
   }
   
@@ -105,34 +120,43 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<AuthResponse> refreshToken(String refreshToken) async {
     try {
       final response = await apiClient.post(
-        '/auth/refresh',
+        '/api/v1/auth/refresh',
         data: {
-          'refreshToken': refreshToken,
+          'refresh_token': refreshToken,
         },
       );
       
       return AuthResponse.fromJson(response);
     } catch (e) {
-      throw ServerException(message: e.toString());
+      throw ServerException(
+        message: e.toString(),
+        errorType: ApiErrorType.server
+      );
     }
   }
   
   @override
   Future<void> logout() async {
     try {
-      await apiClient.post('/auth/logout');
+      await apiClient.post('/api/v1/auth/logout');
     } catch (e) {
-      throw ServerException(message: e.toString());
+      throw ServerException(
+        message: e.toString(),
+        errorType: ApiErrorType.server
+      );
     }
   }
   
   @override
   Future<UserModel> getCurrentUser() async {
     try {
-      final response = await apiClient.get('/auth/me');
+      final response = await apiClient.get('/api/v1/auth/me');
       return UserModel.fromJson(response['user']);
     } catch (e) {
-      throw ServerException(message: e.toString());
+      throw ServerException(
+        message: e.toString(),
+        errorType: ApiErrorType.server
+      );
     }
   }
 } 

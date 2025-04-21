@@ -26,3 +26,24 @@ linter:
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
+
+analyzer:
+  # Existing settings...
+  
+  # Add path aliases to make imports cleaner
+  language:
+    strict-casts: true
+    strict-raw-types: true
+    
+  # Enable path aliases
+  strong-mode: true
+  errors:
+    uri_has_not_been_generated: ignore
+
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    
+  # Enable package imports (instead of relative imports)
+  enable-experiment:
+    - package-imports

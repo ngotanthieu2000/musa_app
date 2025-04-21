@@ -23,7 +23,7 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
 
   @override
   Future<List<TaskModel>> getTasks() async {
-    final response = await client.get(Uri.parse('$baseUrl/tasks'));
+    final response = await client.get(Uri.parse('$baseUrl/api/v1/tasks'));
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = json.decode(response.body);
@@ -35,7 +35,7 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
 
   @override
   Future<TaskModel> getTask(String id) async {
-    final response = await client.get(Uri.parse('$baseUrl/tasks/$id'));
+    final response = await client.get(Uri.parse('$baseUrl/api/v1/tasks/$id'));
 
     if (response.statusCode == 200) {
       return TaskModel.fromJson(json.decode(response.body));
@@ -47,7 +47,7 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
   @override
   Future<TaskModel> createTask(String title, String description) async {
     final response = await client.post(
-      Uri.parse('$baseUrl/tasks'),
+      Uri.parse('$baseUrl/api/v1/tasks'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
         'title': title,
@@ -65,7 +65,7 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
   @override
   Future<TaskModel> updateTask(TaskModel task) async {
     final response = await client.put(
-      Uri.parse('$baseUrl/tasks/${task.id}'),
+      Uri.parse('$baseUrl/api/v1/tasks/${task.id}'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(task.toJson()),
     );
@@ -79,7 +79,7 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
 
   @override
   Future<void> deleteTask(String id) async {
-    final response = await client.delete(Uri.parse('$baseUrl/tasks/$id'));
+    final response = await client.delete(Uri.parse('$baseUrl/api/v1/tasks/$id'));
 
     if (response.statusCode != 204) {
       throw Exception('Failed to delete task');
@@ -88,7 +88,7 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
 
   @override
   Future<void> toggleTaskCompletion(String id) async {
-    final response = await client.patch(Uri.parse('$baseUrl/tasks/$id/toggle'));
+    final response = await client.patch(Uri.parse('$baseUrl/api/v1/tasks/$id/toggle'));
 
     if (response.statusCode != 200) {
       throw Exception('Failed to toggle task completion');

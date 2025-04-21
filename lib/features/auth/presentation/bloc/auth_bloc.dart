@@ -13,6 +13,7 @@ import '../../domain/usecases/logout_usecase.dart';
 import '../../domain/usecases/refresh_token_usecase.dart';
 import '../../domain/usecases/register_usecase.dart';
 import '../../../../core/error/api_error_type.dart';
+import '../../../../features/profile/presentation/bloc/profile_bloc.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -24,6 +25,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RefreshTokenUseCase _refreshTokenUseCase;
   final GetCurrentUserUseCase _getCurrentUserUseCase;
   final IsLoggedInUseCase _isLoggedInUseCase;
+  final ProfileBloc? _profileBloc;
   
   AuthBloc({
     required RegisterUseCase registerUseCase,
@@ -32,12 +34,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required RefreshTokenUseCase refreshTokenUseCase,
     required GetCurrentUserUseCase getCurrentUserUseCase,
     required IsLoggedInUseCase isLoggedInUseCase,
+    ProfileBloc? profileBloc,
   })  : _registerUseCase = registerUseCase,
         _loginUseCase = loginUseCase,
         _logoutUseCase = logoutUseCase,
         _refreshTokenUseCase = refreshTokenUseCase,
         _getCurrentUserUseCase = getCurrentUserUseCase,
         _isLoggedInUseCase = isLoggedInUseCase,
+        _profileBloc = profileBloc,
         super(AuthInitial()) {
     on<AuthCheckStatusEvent>(_onAuthCheckStatus);
     on<AuthRegisterEvent>(_onAuthRegister);
@@ -107,7 +111,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         errorType: failure.errorType,
         data: failure.data
       )),
-      (user) => emit(AuthAuthenticated(user: user)),
+      (user) {
+        emit(AuthAuthenticated(user: user));
+        
+        // Lấy thông tin profile sau khi đăng ký thành công
+        _profileBloc?.add(GetProfileEvent());
+      },
     );
   }
   
@@ -150,7 +159,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         errorType: failure.errorType,
         data: failure.data
       )),
-      (user) => emit(AuthAuthenticated(user: user)),
+      (user) {
+        emit(AuthAuthenticated(user: user));
+        
+        // Lấy thông tin profile sau khi đăng nhập thành công
+        _profileBloc?.add(GetProfileEvent());
+      },
     );
   }
   
@@ -176,18 +190,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthRefreshTokenEvent event,
     Emitter<AuthState> emit,
   ) async {
+    final currentState = state;
+    
     final result = await _refreshTokenUseCase(
       RefreshTokenParams(refreshToken: event.refreshToken),
     );
     
     result.fold(
       (failure) {
-        // If token refresh fails, change to unauthenticated state
+        // Nếu refresh token thất bại, đăng xuất người dùng
         if (failure is AuthFailure) {
-          emit(AuthUnauthenticated());
+          print('AuthBloc: Token refresh failed, logging out user');
+          add(AuthLogoutEvent());
         }
       },
-      (tokens) => null, // If refresh is successful, no state change needed
+      (tokens) {
+        // Nếu refresh thành công và hiện tại đã có user (vẫn giữ trạng thái đã xác thực)
+        if (currentState is AuthAuthenticated) {
+          print('AuthBloc: Token refreshed successfully, keeping authenticated state');
+          // Không cần thay đổi trạng thái, chỉ cập nhật token trong repository
+        }
+      },
     );
   }
   
@@ -203,7 +226,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     
     result.fold(
       (failure) => emit(AuthUnauthenticated()),
-      (user) => emit(AuthAuthenticated(user: user)),
+      (user) {
+        emit(AuthAuthenticated(user: user));
+        
+        // Lấy thông tin profile sau khi lấy thông tin user hiện tại thành công
+        _profileBloc?.add(GetProfileEvent());
+      },
     );
   }
   

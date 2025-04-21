@@ -6,6 +6,8 @@ import 'dart:math';
 import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../../../features/auth/domain/entities/user.dart';
 import '../widgets/buttons.dart';
+import '../../../../features/profile/presentation/bloc/profile_bloc.dart';
+import '../../../../features/profile/domain/entities/profile.dart';
 
 // Helper class for animated task list items
 class AnimatedSlideTransition extends StatefulWidget {
@@ -128,6 +130,11 @@ class _AuthenticatedHomePageState extends State<AuthenticatedHomePage> with Sing
         setState(() {});
       }
     });
+    
+    // Load profile data when the home page loads
+    Future.microtask(() {
+      context.read<ProfileBloc>().add(const GetProfileEvent());
+    });
   }
   
   @override
@@ -186,22 +193,22 @@ class _AuthenticatedHomePageState extends State<AuthenticatedHomePage> with Sing
             padding: const EdgeInsets.only(right: 16.0),
             child: InkWell(
               onTap: () {
-                // Logout and navigate to login
-                context.read<AuthBloc>().add(AuthLogoutEvent());
+                // Chuyển hướng đến trang profile
+                context.go('/profile');
               },
               borderRadius: BorderRadius.circular(30),
               child: Ink(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [colorScheme.error, colorScheme.errorContainer],
+                    colors: [colorScheme.primary, colorScheme.primaryContainer],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: colorScheme.error.withOpacity(0.3),
+                      color: colorScheme.primary.withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -210,10 +217,10 @@ class _AuthenticatedHomePageState extends State<AuthenticatedHomePage> with Sing
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.logout_rounded, size: 18, color: Colors.white),
+                    const Icon(Icons.person_rounded, size: 18, color: Colors.white),
                     const SizedBox(width: 8),
                     Text(
-                      'Logout',
+                      'Profile',
                       style: textTheme.bodyMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -2783,17 +2790,17 @@ class _AuthenticatedHomePageState extends State<AuthenticatedHomePage> with Sing
           ],
         ),
         
-        // Logout button
+        // Profile button
         Padding(
           padding: const EdgeInsets.fromLTRB(64, 32, 64, 32),
           child: ElevatedButton.icon(
             onPressed: () {
-              context.read<AuthBloc>().add(AuthLogoutEvent());
+              context.go('/profile');
             },
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('Logout'),
+            icon: const Icon(Icons.person_rounded),
+            label: const Text('My Profile'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.error,
+              backgroundColor: colorScheme.primary,
               foregroundColor: Colors.white,
               elevation: 2,
               padding: const EdgeInsets.symmetric(vertical: 16),

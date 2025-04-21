@@ -1,128 +1,123 @@
 // lib/core/error/failures.dart
 import 'package:equatable/equatable.dart';
 import 'api_error_type.dart';
+import 'api_error_extensions.dart';
 
+/// Base class for all failures
 abstract class Failure extends Equatable {
+  /// User-friendly message
   final String message;
-  final ApiErrorType errorType;
-  final dynamic data;
   
+  /// Error type
+  final ApiErrorType errorType;
+  
+  /// Additional data
+  final dynamic data;
+
+  /// Constructor
   const Failure({
-    required this.message, 
-    this.errorType = ApiErrorType.unknown,
+    required this.message,
+    required this.errorType,
     this.data,
   });
   
-  String get userFriendlyMessage {
-    switch (errorType) {
-      case ApiErrorType.network:
-        return 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet và thử lại.';
-      case ApiErrorType.server:
-        return 'Lỗi máy chủ. Vui lòng thử lại sau.';
-      case ApiErrorType.auth:
-        return 'Lỗi xác thực. Vui lòng đăng nhập lại.';
-      case ApiErrorType.validation:
-        return message; // Giữ nguyên thông báo gốc cho lỗi xác thực dữ liệu
-      case ApiErrorType.notFound:
-        return 'Không tìm thấy tài nguyên yêu cầu.';
-      case ApiErrorType.timeout:
-        return 'Yêu cầu đã hết thời gian. Vui lòng thử lại.';
-      case ApiErrorType.cors:
-        return 'Lỗi CORS. Máy chủ không cho phép truy cập từ ứng dụng này.';
-      case ApiErrorType.unknown:
-      default:
-        return 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
-    }
-  }
-  
   @override
   List<Object?> get props => [message, errorType, data];
+  
+  @override
+  String toString() => '$runtimeType: $message';
+  
+  /// Get user-friendly message
+  String get userFriendlyMessage => errorType.userFriendlyMessage;
 }
 
-// Server errors
+/// Server failure when there is a problem with the server
 class ServerFailure extends Failure {
-  final int? statusCode;
-  
+  /// Constructor
   const ServerFailure({
-    required String message, 
-    this.statusCode,
-    ApiErrorType errorType = ApiErrorType.server,
+    required String message,
+    required ApiErrorType errorType,
     dynamic data,
   }) : super(
-        message: message, 
-        errorType: errorType,
-        data: data,
-      );
-      
-  @override
-  List<Object?> get props => [...super.props, statusCode];
+          message: message,
+          errorType: errorType,
+          data: data,
+        );
 }
 
-// Network connectivity errors
+/// Network failure when there is a problem with the network
 class NetworkFailure extends Failure {
+  /// Constructor
   const NetworkFailure({
     required String message,
-    ApiErrorType errorType = ApiErrorType.network,
+    required ApiErrorType errorType,
     dynamic data,
   }) : super(
-        message: message,
-        errorType: errorType,
-        data: data,
-      );
+          message: message,
+          errorType: errorType,
+          data: data,
+        );
 }
 
-// Authentication errors
-class AuthFailure extends Failure {
-  const AuthFailure({
-    required String message,
-    ApiErrorType errorType = ApiErrorType.auth,
-    dynamic data,
-  }) : super(
-        message: message,
-        errorType: errorType,
-        data: data,
-      );
-}
-
-// Local data storage errors
+/// Cache failure when there is a problem with the cache
 class CacheFailure extends Failure {
+  /// Constructor
   const CacheFailure({
     required String message,
+    ApiErrorType errorType = ApiErrorType.cache,
     dynamic data,
   }) : super(
-        message: message,
-        errorType: ApiErrorType.unknown,
-        data: data,
-      );
+          message: message,
+          errorType: errorType,
+          data: data,
+        );
 }
 
-// Validation errors
+/// Validation failure when there is a problem with validation
 class ValidationFailure extends Failure {
+  /// Validation errors
   final Map<String, List<String>>? errors;
-  
+
+  /// Constructor
   const ValidationFailure({
     required String message,
+    ApiErrorType errorType = ApiErrorType.validation,
     this.errors,
     dynamic data,
   }) : super(
-        message: message,
-        errorType: ApiErrorType.validation,
-        data: data,
-      );
+          message: message,
+          errorType: errorType,
+          data: data,
+        );
   
   @override
   List<Object?> get props => [...super.props, errors];
 }
 
-// Undefined errors
+/// Auth failure when there is a problem with authentication
+class AuthFailure extends Failure {
+  /// Constructor
+  const AuthFailure({
+    required String message,
+    ApiErrorType errorType = ApiErrorType.auth,
+    dynamic data,
+  }) : super(
+          message: message,
+          errorType: errorType,
+          data: data,
+        );
+}
+
+/// Unexpected failure
 class UnexpectedFailure extends Failure {
+  /// Constructor
   const UnexpectedFailure({
     required String message,
     ApiErrorType errorType = ApiErrorType.unknown,
     dynamic data,
   }) : super(
-        message: message,
-        errorType: errorType,
-        data: data,
-      );
+          message: message,
+          errorType: errorType,
+          data: data,
+        );
 }

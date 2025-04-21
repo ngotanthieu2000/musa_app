@@ -14,24 +14,13 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
-HomeData _$HomeDataFromJson(Map<String, dynamic> json) {
-  return _HomeData.fromJson(json);
-}
-
 /// @nodoc
 mixin _$HomeData {
-  String get userName => throw _privateConstructorUsedError;
-  List<Task> get todayTasks => throw _privateConstructorUsedError;
-  List<Goal> get goals => throw _privateConstructorUsedError;
-  int get overallProgress => throw _privateConstructorUsedError;
-  int get tasksCompleted => throw _privateConstructorUsedError;
-  int get totalTasks => throw _privateConstructorUsedError;
-  String? get reminder => throw _privateConstructorUsedError;
-  Map<String, dynamic>? get healthData => throw _privateConstructorUsedError;
-  Map<String, dynamic>? get financeData => throw _privateConstructorUsedError;
-
-  /// Serializes this HomeData to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  String get welcomeMessage => throw _privateConstructorUsedError;
+  int get taskCount => throw _privateConstructorUsedError;
+  int get completedTaskCount => throw _privateConstructorUsedError;
+  String get userGreeting => throw _privateConstructorUsedError;
+  List<String> get upcomingEvents => throw _privateConstructorUsedError;
 
   /// Create a copy of HomeData
   /// with the given fields replaced by the non-null parameter values.
@@ -46,15 +35,11 @@ abstract class $HomeDataCopyWith<$Res> {
       _$HomeDataCopyWithImpl<$Res, HomeData>;
   @useResult
   $Res call(
-      {String userName,
-      List<Task> todayTasks,
-      List<Goal> goals,
-      int overallProgress,
-      int tasksCompleted,
-      int totalTasks,
-      String? reminder,
-      Map<String, dynamic>? healthData,
-      Map<String, dynamic>? financeData});
+      {String welcomeMessage,
+      int taskCount,
+      int completedTaskCount,
+      String userGreeting,
+      List<String> upcomingEvents});
 }
 
 /// @nodoc
@@ -72,53 +57,33 @@ class _$HomeDataCopyWithImpl<$Res, $Val extends HomeData>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? userName = null,
-    Object? todayTasks = null,
-    Object? goals = null,
-    Object? overallProgress = null,
-    Object? tasksCompleted = null,
-    Object? totalTasks = null,
-    Object? reminder = freezed,
-    Object? healthData = freezed,
-    Object? financeData = freezed,
+    Object? welcomeMessage = null,
+    Object? taskCount = null,
+    Object? completedTaskCount = null,
+    Object? userGreeting = null,
+    Object? upcomingEvents = null,
   }) {
     return _then(_value.copyWith(
-      userName: null == userName
-          ? _value.userName
-          : userName // ignore: cast_nullable_to_non_nullable
+      welcomeMessage: null == welcomeMessage
+          ? _value.welcomeMessage
+          : welcomeMessage // ignore: cast_nullable_to_non_nullable
               as String,
-      todayTasks: null == todayTasks
-          ? _value.todayTasks
-          : todayTasks // ignore: cast_nullable_to_non_nullable
-              as List<Task>,
-      goals: null == goals
-          ? _value.goals
-          : goals // ignore: cast_nullable_to_non_nullable
-              as List<Goal>,
-      overallProgress: null == overallProgress
-          ? _value.overallProgress
-          : overallProgress // ignore: cast_nullable_to_non_nullable
+      taskCount: null == taskCount
+          ? _value.taskCount
+          : taskCount // ignore: cast_nullable_to_non_nullable
               as int,
-      tasksCompleted: null == tasksCompleted
-          ? _value.tasksCompleted
-          : tasksCompleted // ignore: cast_nullable_to_non_nullable
+      completedTaskCount: null == completedTaskCount
+          ? _value.completedTaskCount
+          : completedTaskCount // ignore: cast_nullable_to_non_nullable
               as int,
-      totalTasks: null == totalTasks
-          ? _value.totalTasks
-          : totalTasks // ignore: cast_nullable_to_non_nullable
-              as int,
-      reminder: freezed == reminder
-          ? _value.reminder
-          : reminder // ignore: cast_nullable_to_non_nullable
-              as String?,
-      healthData: freezed == healthData
-          ? _value.healthData
-          : healthData // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
-      financeData: freezed == financeData
-          ? _value.financeData
-          : financeData // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
+      userGreeting: null == userGreeting
+          ? _value.userGreeting
+          : userGreeting // ignore: cast_nullable_to_non_nullable
+              as String,
+      upcomingEvents: null == upcomingEvents
+          ? _value.upcomingEvents
+          : upcomingEvents // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ) as $Val);
   }
 }
@@ -132,15 +97,11 @@ abstract class _$$HomeDataImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {String userName,
-      List<Task> todayTasks,
-      List<Goal> goals,
-      int overallProgress,
-      int tasksCompleted,
-      int totalTasks,
-      String? reminder,
-      Map<String, dynamic>? healthData,
-      Map<String, dynamic>? financeData});
+      {String welcomeMessage,
+      int taskCount,
+      int completedTaskCount,
+      String userGreeting,
+      List<String> upcomingEvents});
 }
 
 /// @nodoc
@@ -156,127 +117,67 @@ class __$$HomeDataImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? userName = null,
-    Object? todayTasks = null,
-    Object? goals = null,
-    Object? overallProgress = null,
-    Object? tasksCompleted = null,
-    Object? totalTasks = null,
-    Object? reminder = freezed,
-    Object? healthData = freezed,
-    Object? financeData = freezed,
+    Object? welcomeMessage = null,
+    Object? taskCount = null,
+    Object? completedTaskCount = null,
+    Object? userGreeting = null,
+    Object? upcomingEvents = null,
   }) {
     return _then(_$HomeDataImpl(
-      userName: null == userName
-          ? _value.userName
-          : userName // ignore: cast_nullable_to_non_nullable
+      welcomeMessage: null == welcomeMessage
+          ? _value.welcomeMessage
+          : welcomeMessage // ignore: cast_nullable_to_non_nullable
               as String,
-      todayTasks: null == todayTasks
-          ? _value._todayTasks
-          : todayTasks // ignore: cast_nullable_to_non_nullable
-              as List<Task>,
-      goals: null == goals
-          ? _value._goals
-          : goals // ignore: cast_nullable_to_non_nullable
-              as List<Goal>,
-      overallProgress: null == overallProgress
-          ? _value.overallProgress
-          : overallProgress // ignore: cast_nullable_to_non_nullable
+      taskCount: null == taskCount
+          ? _value.taskCount
+          : taskCount // ignore: cast_nullable_to_non_nullable
               as int,
-      tasksCompleted: null == tasksCompleted
-          ? _value.tasksCompleted
-          : tasksCompleted // ignore: cast_nullable_to_non_nullable
+      completedTaskCount: null == completedTaskCount
+          ? _value.completedTaskCount
+          : completedTaskCount // ignore: cast_nullable_to_non_nullable
               as int,
-      totalTasks: null == totalTasks
-          ? _value.totalTasks
-          : totalTasks // ignore: cast_nullable_to_non_nullable
-              as int,
-      reminder: freezed == reminder
-          ? _value.reminder
-          : reminder // ignore: cast_nullable_to_non_nullable
-              as String?,
-      healthData: freezed == healthData
-          ? _value._healthData
-          : healthData // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
-      financeData: freezed == financeData
-          ? _value._financeData
-          : financeData // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
+      userGreeting: null == userGreeting
+          ? _value.userGreeting
+          : userGreeting // ignore: cast_nullable_to_non_nullable
+              as String,
+      upcomingEvents: null == upcomingEvents
+          ? _value._upcomingEvents
+          : upcomingEvents // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
 
 /// @nodoc
-@JsonSerializable()
+
 class _$HomeDataImpl implements _HomeData {
   const _$HomeDataImpl(
-      {required this.userName,
-      required final List<Task> todayTasks,
-      required final List<Goal> goals,
-      required this.overallProgress,
-      required this.tasksCompleted,
-      required this.totalTasks,
-      this.reminder,
-      final Map<String, dynamic>? healthData,
-      final Map<String, dynamic>? financeData})
-      : _todayTasks = todayTasks,
-        _goals = goals,
-        _healthData = healthData,
-        _financeData = financeData;
-
-  factory _$HomeDataImpl.fromJson(Map<String, dynamic> json) =>
-      _$$HomeDataImplFromJson(json);
+      {required this.welcomeMessage,
+      required this.taskCount,
+      required this.completedTaskCount,
+      required this.userGreeting,
+      required final List<String> upcomingEvents})
+      : _upcomingEvents = upcomingEvents;
 
   @override
-  final String userName;
-  final List<Task> _todayTasks;
+  final String welcomeMessage;
   @override
-  List<Task> get todayTasks {
-    if (_todayTasks is EqualUnmodifiableListView) return _todayTasks;
+  final int taskCount;
+  @override
+  final int completedTaskCount;
+  @override
+  final String userGreeting;
+  final List<String> _upcomingEvents;
+  @override
+  List<String> get upcomingEvents {
+    if (_upcomingEvents is EqualUnmodifiableListView) return _upcomingEvents;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_todayTasks);
-  }
-
-  final List<Goal> _goals;
-  @override
-  List<Goal> get goals {
-    if (_goals is EqualUnmodifiableListView) return _goals;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_goals);
-  }
-
-  @override
-  final int overallProgress;
-  @override
-  final int tasksCompleted;
-  @override
-  final int totalTasks;
-  @override
-  final String? reminder;
-  final Map<String, dynamic>? _healthData;
-  @override
-  Map<String, dynamic>? get healthData {
-    final value = _healthData;
-    if (value == null) return null;
-    if (_healthData is EqualUnmodifiableMapView) return _healthData;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(value);
-  }
-
-  final Map<String, dynamic>? _financeData;
-  @override
-  Map<String, dynamic>? get financeData {
-    final value = _financeData;
-    if (value == null) return null;
-    if (_financeData is EqualUnmodifiableMapView) return _financeData;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(value);
+    return EqualUnmodifiableListView(_upcomingEvents);
   }
 
   @override
   String toString() {
-    return 'HomeData(userName: $userName, todayTasks: $todayTasks, goals: $goals, overallProgress: $overallProgress, tasksCompleted: $tasksCompleted, totalTasks: $totalTasks, reminder: $reminder, healthData: $healthData, financeData: $financeData)';
+    return 'HomeData(welcomeMessage: $welcomeMessage, taskCount: $taskCount, completedTaskCount: $completedTaskCount, userGreeting: $userGreeting, upcomingEvents: $upcomingEvents)';
   }
 
   @override
@@ -284,38 +185,26 @@ class _$HomeDataImpl implements _HomeData {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$HomeDataImpl &&
-            (identical(other.userName, userName) ||
-                other.userName == userName) &&
+            (identical(other.welcomeMessage, welcomeMessage) ||
+                other.welcomeMessage == welcomeMessage) &&
+            (identical(other.taskCount, taskCount) ||
+                other.taskCount == taskCount) &&
+            (identical(other.completedTaskCount, completedTaskCount) ||
+                other.completedTaskCount == completedTaskCount) &&
+            (identical(other.userGreeting, userGreeting) ||
+                other.userGreeting == userGreeting) &&
             const DeepCollectionEquality()
-                .equals(other._todayTasks, _todayTasks) &&
-            const DeepCollectionEquality().equals(other._goals, _goals) &&
-            (identical(other.overallProgress, overallProgress) ||
-                other.overallProgress == overallProgress) &&
-            (identical(other.tasksCompleted, tasksCompleted) ||
-                other.tasksCompleted == tasksCompleted) &&
-            (identical(other.totalTasks, totalTasks) ||
-                other.totalTasks == totalTasks) &&
-            (identical(other.reminder, reminder) ||
-                other.reminder == reminder) &&
-            const DeepCollectionEquality()
-                .equals(other._healthData, _healthData) &&
-            const DeepCollectionEquality()
-                .equals(other._financeData, _financeData));
+                .equals(other._upcomingEvents, _upcomingEvents));
   }
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
       runtimeType,
-      userName,
-      const DeepCollectionEquality().hash(_todayTasks),
-      const DeepCollectionEquality().hash(_goals),
-      overallProgress,
-      tasksCompleted,
-      totalTasks,
-      reminder,
-      const DeepCollectionEquality().hash(_healthData),
-      const DeepCollectionEquality().hash(_financeData));
+      welcomeMessage,
+      taskCount,
+      completedTaskCount,
+      userGreeting,
+      const DeepCollectionEquality().hash(_upcomingEvents));
 
   /// Create a copy of HomeData
   /// with the given fields replaced by the non-null parameter values.
@@ -324,48 +213,26 @@ class _$HomeDataImpl implements _HomeData {
   @pragma('vm:prefer-inline')
   _$$HomeDataImplCopyWith<_$HomeDataImpl> get copyWith =>
       __$$HomeDataImplCopyWithImpl<_$HomeDataImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$HomeDataImplToJson(
-      this,
-    );
-  }
 }
 
 abstract class _HomeData implements HomeData {
   const factory _HomeData(
-      {required final String userName,
-      required final List<Task> todayTasks,
-      required final List<Goal> goals,
-      required final int overallProgress,
-      required final int tasksCompleted,
-      required final int totalTasks,
-      final String? reminder,
-      final Map<String, dynamic>? healthData,
-      final Map<String, dynamic>? financeData}) = _$HomeDataImpl;
-
-  factory _HomeData.fromJson(Map<String, dynamic> json) =
-      _$HomeDataImpl.fromJson;
+      {required final String welcomeMessage,
+      required final int taskCount,
+      required final int completedTaskCount,
+      required final String userGreeting,
+      required final List<String> upcomingEvents}) = _$HomeDataImpl;
 
   @override
-  String get userName;
+  String get welcomeMessage;
   @override
-  List<Task> get todayTasks;
+  int get taskCount;
   @override
-  List<Goal> get goals;
+  int get completedTaskCount;
   @override
-  int get overallProgress;
+  String get userGreeting;
   @override
-  int get tasksCompleted;
-  @override
-  int get totalTasks;
-  @override
-  String? get reminder;
-  @override
-  Map<String, dynamic>? get healthData;
-  @override
-  Map<String, dynamic>? get financeData;
+  List<String> get upcomingEvents;
 
   /// Create a copy of HomeData
   /// with the given fields replaced by the non-null parameter values.

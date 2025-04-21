@@ -41,14 +41,18 @@ dependencies:
   animations: ^2.0.11
   lottie: ^2.7.0
   intl: ^0.19.0
+  flutter_dotenv: ^5.1.0
+  
+  # Media
+  image_picker: ^1.0.7
   
   # State Management
-  flutter_bloc: ^8.1.4
+  flutter_bloc: ^8.1.3
   bloc_concurrency: ^0.2.3
   
   # DI
-  get_it: ^7.6.7
-  injectable: ^2.3.2
+  get_it: ^7.6.0
+  injectable: ^2.3.0
 
   # Functional Programming
   dartz: ^0.10.1
@@ -60,18 +64,20 @@ dependencies:
   equatable: ^2.0.5
   
   # Navigation
-  go_router: ^13.0.1
+  go_router: ^10.1.2
   
   # Storage
-  shared_preferences: ^2.2.2
+  shared_preferences: ^2.2.1
   flutter_secure_storage: ^9.0.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   
   # Network
-  http: ^1.1.2
-  dio: ^5.4.0
-  connectivity_plus: ^5.0.2
+  http: ^1.1.0
+  dio: ^5.3.3
+  connectivity_plus: ^4.0.2
+  mime: ^1.0.4
+  http_parser: ^4.0.2
   
   # Firebase - Temporarily disabled
   # firebase_core: ^2.24.2
@@ -91,13 +97,14 @@ dependencies:
   google_fonts: ^6.1.0
   # JavaScript interop
   js: ^0.6.7
+  percent_indicator: ^4.2.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   
   # Code Generation
-  build_runner: ^2.4.8
+  build_runner: ^2.4.6
   freezed: ^2.4.5
   json_serializable: ^6.7.1
 
@@ -106,7 +113,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^3.0.1
+  flutter_lints: ^2.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

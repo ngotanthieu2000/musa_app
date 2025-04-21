@@ -1,41 +1,43 @@
+import 'package:injectable/injectable.dart';
+import '../../../../core/network_helper.dart';
+import '../../../../core/constants/api_constants.dart';
+import '../models/home_data_model.dart';
 import '../models/home_feature_model.dart';
 
 abstract class HomeRemoteDataSource {
+  /// Gets home data from API.
+  Future<HomeDataModel> getHomeData();
+
+  /// Gets home features from API.
   Future<List<HomeFeatureModel>> getHomeFeatures();
 }
 
+@LazySingleton(as: HomeRemoteDataSource)
 class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
+  final ApiClient apiClient;
+
+  HomeRemoteDataSourceImpl({required this.apiClient});
+
+  @override
+  Future<HomeDataModel> getHomeData() async {
+    try {
+      final response = await apiClient.get('/api/v1/home');
+      return HomeDataModel.fromJson(response);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   @override
   Future<List<HomeFeatureModel>> getHomeFeatures() async {
-    // Giả lập API call với delay mô phỏng response
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Fake data trả về, mỗi feature có: id, title, icon, route
-    return [
-      HomeFeatureModel(
-        id: '1',
-        title: 'Hỏi đáp với AI',
-        icon: 'chat',
-        route: '/ai-chat',
-      ),
-      HomeFeatureModel(
-        id: '2',
-        title: 'Bài học của bạn',
-        icon: 'book',
-        route: '/my-lessons',
-      ),
-      HomeFeatureModel(
-        id: '3',
-        title: 'Giải bài tập bằng ảnh',
-        icon: 'camera',
-        route: '/photo-solver',
-      ),
-      HomeFeatureModel(
-        id: '4',
-        title: 'Tiến độ của bạn',
-        icon: 'chart',
-        route: '/progress',
-      ),
-    ];
+    try {
+      final response = await apiClient.get('/api/v1/home/features');
+      final List<dynamic> featuresJson = response['features'];
+      return featuresJson
+          .map((featureJson) => HomeFeatureModel.fromJson(featureJson))
+          .toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 }

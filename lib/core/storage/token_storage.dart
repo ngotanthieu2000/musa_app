@@ -1,72 +1,86 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+/// Lớp lưu trữ token xác thực
 class TokenStorage {
-  final FlutterSecureStorage _secureStorage;
+  static const String _keyAccessToken = 'access_token';
+  static const String _keyRefreshToken = 'refresh_token';
+  static const String _keyExpiresAt = 'expires_at';
   
-  // Keys for secure storage
-  static const String _accessTokenKey = 'access_token';
-  static const String _refreshTokenKey = 'refresh_token';
-  static const String _userEmailKey = 'user_email';
+  final FlutterSecureStorage secureStorage;
   
-  TokenStorage({FlutterSecureStorage? secureStorage})
-      : _secureStorage = secureStorage ?? const FlutterSecureStorage();
+  /// Constructor
+  TokenStorage({required this.secureStorage});
   
-  // Save access token
-  Future<void> saveAccessToken(String token) async {
-    await _secureStorage.write(key: _accessTokenKey, value: token);
-  }
-  
-  // Get access token
+  /// Lấy token truy cập
   Future<String?> getAccessToken() async {
-    return await _secureStorage.read(key: _accessTokenKey);
+    return await secureStorage.read(key: _keyAccessToken);
   }
   
-  // Save refresh token
-  Future<void> saveRefreshToken(String token) async {
-    await _secureStorage.write(key: _refreshTokenKey, value: token);
+  /// Lưu token truy cập
+  Future<void> saveAccessToken(String token) async {
+    return await secureStorage.write(key: _keyAccessToken, value: token);
   }
   
-  // Get refresh token
+  /// Lấy token làm mới
   Future<String?> getRefreshToken() async {
-    return await _secureStorage.read(key: _refreshTokenKey);
+    return await secureStorage.read(key: _keyRefreshToken);
   }
   
-  // Save user email
-  Future<void> saveUserEmail(String email) async {
-    await _secureStorage.write(key: _userEmailKey, value: email);
+  /// Lưu token làm mới
+  Future<void> saveRefreshToken(String token) async {
+    return await secureStorage.write(key: _keyRefreshToken, value: token);
   }
   
-  // Get user email
-  Future<String?> getUserEmail() async {
-    return await _secureStorage.read(key: _userEmailKey);
+  /// Lưu thời gian hết hạn
+  Future<void> saveExpiresAt(DateTime expiresAt) async {
+    return await secureStorage.write(
+      key: _keyExpiresAt,
+      value: expiresAt.millisecondsSinceEpoch.toString(),
+    );
   }
   
-  // Clear all tokens (when logging out)
-  Future<void> clearTokens() async {
-    await _secureStorage.delete(key: _accessTokenKey);
-    await _secureStorage.delete(key: _refreshTokenKey);
+  /// Lấy thời gian hết hạn
+  Future<DateTime?> getExpiresAt() async {
+    final expiresAtString = await secureStorage.read(key: _keyExpiresAt);
+    if (expiresAtString == null) return null;
+    
+    final expiresAtMillis = int.tryParse(expiresAtString);
+    if (expiresAtMillis == null) return null;
+    
+    return DateTime.fromMillisecondsSinceEpoch(expiresAtMillis);
   }
   
-  // Check if user is logged in
-  Future<bool> isLoggedIn() async {
-    final token = await getAccessToken();
-    return token != null && token.isNotEmpty;
+  /// Kiểm tra token có hết hạn chưa
+  Future<bool> isTokenExpired() async {
+    final expiresAt = await getExpiresAt();
+    if (expiresAt == null) return true;
+    
+    return DateTime.now().isAfter(expiresAt);
   }
   
-  // Save all authentication data
-  Future<void> saveAuthData({
+  /// Lưu tất cả token
+  Future<void> saveAllTokens({
     required String accessToken,
     required String refreshToken,
-    required String email,
+    required DateTime expiresAt,
   }) async {
     await saveAccessToken(accessToken);
     await saveRefreshToken(refreshToken);
-    await saveUserEmail(email);
+    await saveExpiresAt(expiresAt);
   }
   
-  // Clear all authentication data
-  Future<void> clearAuthData() async {
-    await clearTokens();
-    await _secureStorage.delete(key: _userEmailKey);
+  /// Xóa tất cả token
+  Future<void> clearAllTokens() async {
+    await secureStorage.delete(key: _keyAccessToken);
+    await secureStorage.delete(key: _keyRefreshToken);
+    await secureStorage.delete(key: _keyExpiresAt);
+  }
+  
+  /// Gắn token vào header xác thực
+  Future<Map<String, String>> getAuthHeader() async {
+    final token = await getAccessToken();
+    if (token == null) return {};
+    
+    return {'Authorization': 'Bearer $token'};
   }
 } 

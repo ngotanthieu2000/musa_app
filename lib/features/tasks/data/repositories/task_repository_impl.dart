@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart' hide Task;
 import '../../../../core/error/failures.dart';
+import '../../../../core/error/api_error_type.dart';
 import '../../domain/entities/task.dart';
 import '../../domain/repositories/task_repository.dart';
 import '../datasources/task_remote_data_source.dart';
@@ -8,7 +9,7 @@ import '../models/task_model.dart';
 class TaskRepositoryImpl implements TaskRepository {
   final TaskRemoteDataSource remoteDataSource;
 
-  TaskRepositoryImpl(this.remoteDataSource);
+  TaskRepositoryImpl({required this.remoteDataSource});
 
   @override
   Future<Either<Failure, List<Task>>> getTasks() async {
@@ -17,7 +18,10 @@ class TaskRepositoryImpl implements TaskRepository {
       final tasks = taskModels.map((model) => model.toEntity()).toList();
       return Right(tasks);
     } catch (e) {
-      return Left(ServerFailure(message: 'Failed to get tasks: $e'));
+      return Left(ServerFailure(
+        message: 'Failed to get tasks: $e',
+        errorType: ApiErrorType.server,
+      ));
     }
   }
 
@@ -27,7 +31,10 @@ class TaskRepositoryImpl implements TaskRepository {
       final taskModel = await remoteDataSource.getTask(id);
       return Right(taskModel.toEntity());
     } catch (e) {
-      return Left(ServerFailure(message: 'Failed to get task: $e'));
+      return Left(ServerFailure(
+        message: 'Failed to get task: $e',
+        errorType: ApiErrorType.server,
+      ));
     }
   }
 
@@ -40,7 +47,10 @@ class TaskRepositoryImpl implements TaskRepository {
       final taskModel = await remoteDataSource.createTask(title, description);
       return Right(taskModel.toEntity());
     } catch (e) {
-      return Left(ServerFailure(message: 'Failed to create task: $e'));
+      return Left(ServerFailure(
+        message: 'Failed to create task: $e',
+        errorType: ApiErrorType.server,
+      ));
     }
   }
 
@@ -51,7 +61,10 @@ class TaskRepositoryImpl implements TaskRepository {
       final updatedTaskModel = await remoteDataSource.updateTask(taskModel);
       return Right(updatedTaskModel.toEntity());
     } catch (e) {
-      return Left(ServerFailure(message: 'Failed to update task: $e'));
+      return Left(ServerFailure(
+        message: 'Failed to update task: $e',
+        errorType: ApiErrorType.server,
+      ));
     }
   }
 
@@ -61,7 +74,10 @@ class TaskRepositoryImpl implements TaskRepository {
       await remoteDataSource.deleteTask(id);
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(message: 'Failed to delete task: $e'));
+      return Left(ServerFailure(
+        message: 'Failed to delete task: $e',
+        errorType: ApiErrorType.server,
+      ));
     }
   }
 
@@ -71,7 +87,10 @@ class TaskRepositoryImpl implements TaskRepository {
       await remoteDataSource.toggleTaskCompletion(id);
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(message: 'Failed to toggle task completion: $e'));
+      return Left(ServerFailure(
+        message: 'Failed to toggle task completion: $e',
+        errorType: ApiErrorType.server,
+      ));
     }
   }
 } 

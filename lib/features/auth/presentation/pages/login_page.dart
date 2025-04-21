@@ -100,21 +100,32 @@ class _LoginPageState extends State<LoginPage> {
               Navigator.of(context).pop();
             }
             
+            print('Login Page: Authenticated state received, user: ${state.user}');
+            
             // Hiển thị thông báo đăng nhập thành công
             NotificationService().showSuccessNotification(
               context,
               message: 'Đăng nhập thành công!',
             );
             
-            // Chuyển đến trang chính
-            Future.delayed(const Duration(milliseconds: 500), () {
-              context.go('/');
+            // Đảm bảo chuyển hướng đúng cách
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              print('Login Page: Navigating to home');
+              try {
+                context.go('/');
+              } catch (e) {
+                print('Login Page: Navigation error: $e');
+                // Phương án dự phòng nếu GoRouter gặp vấn đề
+                Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+              }
             });
           } else if (state is AuthError) {
             // Ẩn dialog loading nếu có
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
             }
+            
+            print('Login Page: Error state received: ${state.message}');
             
             // Hiển thị thông báo lỗi
             BlocHelper.handleError(
