@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../tasks/presentation/pages/tasks_page.dart';
+import '../../../tasks/presentation/bloc/tasks_bloc.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
 import '../bloc/navigation_bloc.dart';
 import 'bottom_nav_bar.dart';
@@ -19,8 +20,15 @@ class AppNavigation extends StatelessWidget {
       const ChatPage(),
     ];
 
-    return BlocProvider<NavigationBloc>.value(
-      value: di.sl<NavigationBloc>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<NavigationBloc>.value(
+          value: di.sl<NavigationBloc>(),
+        ),
+        BlocProvider<TasksBloc>(
+          create: (context) => di.sl<TasksBloc>(),
+        ),
+      ],
       child: BlocBuilder<NavigationBloc, NavigationState>(
         builder: (context, state) {
           return Scaffold(

@@ -90,28 +90,34 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<Either<Failure, Profile>> updateProfile(Map<String, dynamic> profileData) async {
+    print('DEBUG REPO: Starting updateProfile with data: $profileData');
     if (await networkInfo.isConnected) {
       try {
         // Kiểm tra xem có ảnh đại diện mới không
         if (profileData.containsKey('avatar_file')) {
           final avatarFilePath = profileData['avatar_file'] as String;
+          print('DEBUG REPO: Uploading avatar from path: $avatarFilePath');
           
           try {
             // Tải ảnh lên server
             final String imageUrl;
             if (useMockApi) {
+              print('DEBUG REPO: Using mock to upload image');
               imageUrl = await _mockApi.uploadImage(File(avatarFilePath));
             } else {
+              print('DEBUG REPO: Using image upload service');
               imageUrl = await imageUploadService.uploadImage(
                 File(avatarFilePath),
                 folder: 'avatars',
               );
             }
             
+            print('DEBUG REPO: Image uploaded, got URL: $imageUrl');
             // Cập nhật URL ảnh trong dữ liệu profile
             profileData.remove('avatar_file');
             profileData['avatar'] = imageUrl;
           } catch (e) {
+            print('DEBUG REPO: Image upload failed: $e');
             return Left(ServerFailure(
               message: 'Không thể tải ảnh đại diện: ${e.toString()}',
               errorType: ApiErrorType.server,
@@ -119,16 +125,26 @@ class ProfileRepositoryImpl implements ProfileRepository {
           }
         }
         
+        print('DEBUG REPO: Calling remote data source updateProfile');
         final updatedProfile = await remoteDataSource.updateProfile(profileData);
+        print('DEBUG REPO: Profile updated successfully, caching to local');
         localDataSource.cacheProfile(updatedProfile);
         return Right(updatedProfile);
       } on ServerException catch (e) {
+        print('DEBUG REPO: ServerException in updateProfile: ${e.message}');
         return Left(ServerFailure(
           message: e.message,
           errorType: e.errorType,
         ));
+      } catch (e) {
+        print('DEBUG REPO: Unexpected error in updateProfile: $e');
+        return Left(ServerFailure(
+          message: e.toString(),
+          errorType: ApiErrorType.unknown,
+        ));
       }
     } else {
+      print('DEBUG REPO: No internet connection');
       return Left(NetworkFailure(
         message: 'Không có kết nối internet',
         errorType: ApiErrorType.network,

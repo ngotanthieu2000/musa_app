@@ -1,171 +1,366 @@
 import '../../domain/entities/task.dart';
 
-class TaskModel {
+class SubTaskModel {
   final String id;
   final String title;
-  final String description;
-  final bool completed;
+  final bool isCompleted;
+  final DateTime? dueDate;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final TaskStatus? status;
-  final TaskPriority? priority;
-  final String? category;
-  final List<String>? tags;
-  final DateTime? completedAt;
-  final DateTime? dueDate;
-  final bool isRepeating;
-  final String? repeatFrequency;
-  final String? assignedTo;
-  
-  TaskModel({
+
+  SubTaskModel({
     required this.id,
     required this.title,
-    this.description = '',
-    this.completed = false,
+    this.isCompleted = false,
+    this.dueDate,
     this.createdAt,
     this.updatedAt,
-    this.status,
-    this.priority,
-    this.category,
-    this.tags,
-    this.completedAt,
-    this.dueDate,
-    this.isRepeating = false,
-    this.repeatFrequency,
-    this.assignedTo,
   });
 
-  factory TaskModel.fromJson(Map<String, dynamic> json) {
-    return TaskModel(
-      id: json['id'].toString(),
-      title: json['title'] as String,
-      description: json['description'] as String? ?? '',
-      completed: json['completed'] as bool? ?? false,
-      createdAt: json['createdAt'] != null 
-        ? DateTime.parse(json['createdAt'] as String) 
-        : null,
-      updatedAt: json['updatedAt'] != null 
-        ? DateTime.parse(json['updatedAt'] as String) 
-        : null,
-      status: json['status'] != null 
-        ? _parseStatus(json['status'])
-        : null,
-      priority: json['priority'] != null 
-        ? _parsePriority(json['priority'])
-        : null,
-      category: json['category'] as String?,
-      tags: json['tags'] != null 
-        ? (json['tags'] as List<dynamic>).map((e) => e as String).toList() 
-        : null,
-      completedAt: json['completedAt'] != null 
-        ? DateTime.parse(json['completedAt'] as String) 
-        : null,
-      dueDate: json['dueDate'] != null 
-        ? DateTime.parse(json['dueDate'] as String) 
-        : null,
-      isRepeating: json['isRepeating'] as bool? ?? false,
-      repeatFrequency: json['repeatFrequency'] as String?,
-      assignedTo: json['assignedTo'] as String?,
+  factory SubTaskModel.fromJson(Map<String, dynamic> json) {
+    print('SubTaskModel.fromJson keys: ${json.keys.toList()}');
+
+    final id = json['id'] ?? json['_id'] ?? '';
+    final title = json['title'] ?? '';
+    final isCompleted = json['is_completed'] ?? json['isCompleted'] ?? json['completed'] ?? false;
+
+    DateTime? dueDate;
+    if (json['due_date'] != null) {
+      dueDate = DateTime.parse(json['due_date']);
+    } else if (json['dueDate'] != null) {
+      dueDate = DateTime.parse(json['dueDate']);
+    }
+
+    DateTime? createdAt;
+    if (json['created_at'] != null) {
+      createdAt = DateTime.parse(json['created_at']);
+    } else if (json['createdAt'] != null) {
+      createdAt = DateTime.parse(json['createdAt']);
+    }
+
+    DateTime? updatedAt;
+    if (json['updated_at'] != null) {
+      updatedAt = DateTime.parse(json['updated_at']);
+    } else if (json['updatedAt'] != null) {
+      updatedAt = DateTime.parse(json['updatedAt']);
+    }
+
+    return SubTaskModel(
+      id: id,
+      title: title,
+      isCompleted: isCompleted,
+      dueDate: dueDate,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
-  }
-  
-  static TaskStatus _parseStatus(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending': return TaskStatus.pending;
-      case 'in_progress': return TaskStatus.inProgress;
-      case 'completed': return TaskStatus.completed;
-      case 'cancelled': return TaskStatus.cancelled;
-      default: return TaskStatus.pending;
-    }
-  }
-  
-  static TaskPriority _parsePriority(String priority) {
-    switch (priority.toLowerCase()) {
-      case 'low': return TaskPriority.low;
-      case 'medium': return TaskPriority.medium;
-      case 'high': return TaskPriority.high;
-      default: return TaskPriority.medium;
-    }
-  }
-  
-  static String _statusToString(TaskStatus? status) {
-    if (status == null) return 'pending';
-    
-    switch (status) {
-      case TaskStatus.pending: return 'pending';
-      case TaskStatus.inProgress: return 'in_progress';
-      case TaskStatus.completed: return 'completed';
-      case TaskStatus.cancelled: return 'cancelled';
-    }
-  }
-  
-  static String _priorityToString(TaskPriority? priority) {
-    if (priority == null) return 'medium';
-    
-    switch (priority) {
-      case TaskPriority.low: return 'low';
-      case TaskPriority.medium: return 'medium';
-      case TaskPriority.high: return 'high';
-    }
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'title': title,
-      'description': description,
-      'completed': completed,
-      'createdAt': createdAt?.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
-      'status': status != null ? _statusToString(status) : null,
-      'priority': priority != null ? _priorityToString(priority) : null,
-      'category': category,
-      'tags': tags,
-      'completedAt': completedAt?.toIso8601String(),
-      'dueDate': dueDate?.toIso8601String(),
-      'isRepeating': isRepeating,
-      'repeatFrequency': repeatFrequency,
-      'assignedTo': assignedTo,
+      'is_completed': isCompleted,
+      'due_date': dueDate?.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
-  
-  Task toEntity() {
-    return Task(
+
+  SubTask toEntity() {
+    return SubTask(
       id: id,
       title: title,
-      description: description,
-      completed: completed,
+      isCompleted: isCompleted,
+      dueDate: dueDate,
       createdAt: createdAt,
       updatedAt: updatedAt,
-      status: status,
+    );
+  }
+
+  factory SubTaskModel.fromEntity(SubTask subTask) {
+    return SubTaskModel(
+      id: subTask.id,
+      title: subTask.title,
+      isCompleted: subTask.isCompleted,
+      dueDate: subTask.dueDate,
+      createdAt: subTask.createdAt,
+      updatedAt: subTask.updatedAt,
+    );
+  }
+}
+
+class ReminderModel {
+  final String id;
+  final String type;
+  final String message;
+  final DateTime time;
+  final bool isSent;
+
+  ReminderModel({
+    required this.id,
+    required this.type,
+    required this.message,
+    required this.time,
+    this.isSent = false,
+  });
+
+  factory ReminderModel.fromJson(Map<String, dynamic> json) {
+    print('ReminderModel.fromJson keys: ${json.keys.toList()}');
+
+    final id = json['id'] ?? json['_id'] ?? '';
+    final type = json['type'] ?? 'push';
+    final message = json['message'] ?? json['content'] ?? '';
+
+    DateTime time;
+    if (json['time'] != null) {
+      time = DateTime.parse(json['time']);
+    } else if (json['reminderTime'] != null) {
+      time = DateTime.parse(json['reminderTime']);
+    } else if (json['date'] != null) {
+      time = DateTime.parse(json['date']);
+    } else {
+      time = DateTime.now().add(const Duration(days: 1));
+    }
+
+    final isSent = json['is_sent'] ?? json['isSent'] ?? false;
+
+    return ReminderModel(
+      id: id,
+      type: type,
+      message: message,
+      time: time,
+      isSent: isSent,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'message': message,
+      'time': time.toIso8601String(),
+      'is_sent': isSent,
+    };
+  }
+
+  Reminder toEntity() {
+    return Reminder(
+      id: id,
+      type: type,
+      message: message,
+      time: time,
+      isSent: isSent,
+    );
+  }
+
+  factory ReminderModel.fromEntity(Reminder reminder) {
+    return ReminderModel(
+      id: reminder.id,
+      type: reminder.type,
+      message: reminder.message,
+      time: reminder.time,
+      isSent: reminder.isSent,
+    );
+  }
+}
+
+class TaskModel {
+  final String id;
+  final String userId;
+  final String title;
+  final String description;
+  final bool isCompleted;
+  final DateTime? dueDate;
+  final TaskPriority priority;
+  final String category;
+  final List<String> tags;
+  final List<SubTaskModel> subTasks;
+  final List<ReminderModel> reminders;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final int progress;
+
+  TaskModel({
+    required this.id,
+    required this.userId,
+    required this.title,
+    this.description = '',
+    this.isCompleted = false,
+    this.dueDate,
+    this.priority = TaskPriority.medium,
+    this.category = '',
+    this.tags = const [],
+    this.subTasks = const [],
+    this.reminders = const [],
+    required this.createdAt,
+    required this.updatedAt,
+    this.progress = 0,
+  });
+
+  factory TaskModel.fromJson(Map<String, dynamic> json) {
+    // Print the keys to debug
+    print('TaskModel.fromJson keys: ${json.keys.toList()}');
+
+    // Handle different field naming conventions
+    final id = json['id'] ?? json['_id'] ?? '';
+    final userId = json['user_id'] ?? json['userId'] ?? '';
+    final title = json['title'] ?? '';
+    final description = json['description'] ?? '';
+    final isCompleted = json['is_completed'] ?? json['isCompleted'] ?? json['completed'] ?? false;
+
+    // Handle different date formats
+    DateTime? dueDate;
+    if (json['due_date'] != null) {
+      dueDate = DateTime.parse(json['due_date']);
+    } else if (json['dueDate'] != null) {
+      dueDate = DateTime.parse(json['dueDate']);
+    }
+
+    // Handle priority
+    final priority = _parsePriority(json['priority']);
+
+    // Handle category
+    final category = json['category'] ?? '';
+
+    // Handle tags
+    List<String> tags = [];
+    if (json['tags'] != null) {
+      if (json['tags'] is List) {
+        tags = List<String>.from(json['tags']);
+      } else if (json['tags'] is String) {
+        // Handle case where tags might be a comma-separated string
+        tags = (json['tags'] as String).split(',').map((e) => e.trim()).toList();
+      }
+    }
+
+    // Handle subtasks
+    List<SubTaskModel> subTasks = [];
+    if (json['sub_tasks'] != null) {
+      subTasks = List<SubTaskModel>.from(
+          json['sub_tasks'].map((x) => SubTaskModel.fromJson(x)));
+    } else if (json['subTasks'] != null) {
+      subTasks = List<SubTaskModel>.from(
+          json['subTasks'].map((x) => SubTaskModel.fromJson(x)));
+    }
+
+    // Handle reminders
+    List<ReminderModel> reminders = [];
+    if (json['reminders'] != null) {
+      reminders = List<ReminderModel>.from(
+          json['reminders'].map((x) => ReminderModel.fromJson(x)));
+    }
+
+    // Handle dates
+    DateTime createdAt;
+    if (json['created_at'] != null) {
+      createdAt = DateTime.parse(json['created_at']);
+    } else if (json['createdAt'] != null) {
+      createdAt = DateTime.parse(json['createdAt']);
+    } else {
+      createdAt = DateTime.now();
+    }
+
+    DateTime updatedAt;
+    if (json['updated_at'] != null) {
+      updatedAt = DateTime.parse(json['updated_at']);
+    } else if (json['updatedAt'] != null) {
+      updatedAt = DateTime.parse(json['updatedAt']);
+    } else {
+      updatedAt = DateTime.now();
+    }
+
+    // Handle progress
+    final progress = json['progress'] ?? 0;
+
+    return TaskModel(
+      id: id,
+      userId: userId,
+      title: title,
+      description: description,
+      isCompleted: isCompleted,
+      dueDate: dueDate,
       priority: priority,
       category: category,
       tags: tags,
-      completedAt: completedAt,
-      dueDate: dueDate,
-      isRepeating: isRepeating,
-      repeatFrequency: repeatFrequency,
-      assignedTo: assignedTo,
+      subTasks: subTasks,
+      reminders: reminders,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      progress: progress,
     );
   }
-  
+
+  static TaskPriority _parsePriority(String? priority) {
+    if (priority == null) return TaskPriority.medium;
+
+    switch (priority.toLowerCase()) {
+      case 'low':
+        return TaskPriority.low;
+      case 'medium':
+        return TaskPriority.medium;
+      case 'high':
+        return TaskPriority.high;
+      case 'critical':
+        return TaskPriority.critical;
+      default:
+        return TaskPriority.medium;
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'title': title,
+      'description': description,
+      'is_completed': isCompleted,
+      'due_date': dueDate?.toIso8601String(),
+      'priority': priority.toString().split('.').last,
+      'category': category,
+      'tags': tags,
+      'sub_tasks': subTasks.map((x) => x.toJson()).toList(),
+      'reminders': reminders.map((x) => x.toJson()).toList(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'progress': progress,
+    };
+  }
+
+  Task toEntity() {
+    return Task(
+      id: id,
+      userId: userId,
+      title: title,
+      description: description,
+      isCompleted: isCompleted,
+      dueDate: dueDate,
+      priority: priority,
+      category: category,
+      tags: tags,
+      subTasks: subTasks.map((x) => x.toEntity()).toList(),
+      reminders: reminders.map((x) => x.toEntity()).toList(),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      progress: progress,
+    );
+  }
+
   factory TaskModel.fromEntity(Task task) {
     return TaskModel(
       id: task.id,
+      userId: task.userId,
       title: task.title,
       description: task.description,
-      completed: task.completed,
-      createdAt: task.createdAt,
-      updatedAt: task.updatedAt,
-      status: task.status,
+      isCompleted: task.isCompleted,
+      dueDate: task.dueDate,
       priority: task.priority,
       category: task.category,
       tags: task.tags,
-      completedAt: task.completedAt,
-      dueDate: task.dueDate,
-      isRepeating: task.isRepeating,
-      repeatFrequency: task.repeatFrequency,
-      assignedTo: task.assignedTo,
+      subTasks: task.subTasks.map((x) => SubTaskModel.fromEntity(x)).toList(),
+      reminders: task.reminders.map((x) => ReminderModel.fromEntity(x)).toList(),
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      progress: task.progress,
     );
   }
-} 
+}

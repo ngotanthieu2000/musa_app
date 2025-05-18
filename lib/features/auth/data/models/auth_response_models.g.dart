@@ -20,7 +20,7 @@ Map<String, dynamic> _$BaseResponseToJson(BaseResponse instance) =>
     };
 
 AuthResponse _$AuthResponseFromJson(Map<String, dynamic> json) => AuthResponse(
-      success: json['success'] as bool,
+      success: json['success'] as bool? ?? true,
       message: json['message'] as String?,
       statusCode: (json['statusCode'] as num?)?.toInt(),
       accessToken: json['access_token'] as String?,

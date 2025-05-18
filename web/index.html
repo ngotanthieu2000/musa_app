@@ -35,7 +35,7 @@
 
   <script>
     // The value below is injected by flutter build, do not touch.
-    var serviceWorkerVersion = null;
+    var serviceWorkerVersion = "{{flutter_service_worker_version}}";
   </script>
   <!-- This script adds the flutter initialization JS code -->
   <script src="flutter.js" defer></script>
@@ -103,6 +103,23 @@
   <script>
     window.addEventListener('load', function (ev) {
       var loading = document.querySelector('#loading');
+
+      // Add error logging
+      var originalConsoleError = console.error;
+      console.error = function () {
+        // Call the original console.error
+        originalConsoleError.apply(console, arguments);
+
+        // Log the error to the loading div
+        var errorDiv = document.createElement('div');
+        errorDiv.style.color = 'red';
+        errorDiv.style.margin = '20px';
+        errorDiv.style.maxWidth = '80%';
+        errorDiv.style.wordBreak = 'break-word';
+        errorDiv.textContent = Array.from(arguments).join(' ');
+        loading.appendChild(errorDiv);
+      };
+
       // Download main.dart.js
       _flutter.loader.loadEntrypoint({
         serviceWorker: {
@@ -115,7 +132,7 @@
             appRunner.runApp();
           });
         }
-      });
+      })
     });
   </script>
 </body>

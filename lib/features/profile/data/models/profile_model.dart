@@ -30,9 +30,23 @@ class ProfileModel extends Profile {
         );
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    // Xử lý trường name từ các trường khác nhau
+    String? name = json['name'];
+    if (name == null) {
+      // Nếu không có trường name, tạo từ first_name và last_name
+      if (json['first_name'] != null || json['last_name'] != null) {
+        String firstName = json['first_name'] ?? '';
+        String lastName = json['last_name'] ?? '';
+        name = lastName.isNotEmpty ? '$lastName $firstName' : firstName;
+      } else if (json['display_name'] != null) {
+        // Hoặc sử dụng display_name nếu có
+        name = json['display_name'];
+      }
+    }
+
     return ProfileModel(
       id: json['id'],
-      name: json['name'],
+      name: name,
       email: json['email'],
       avatar: json['avatar'],
       phoneNumber: json['phone_number'],
@@ -47,19 +61,34 @@ class ProfileModel extends Profile {
       healthData: json['health_data'] != null
           ? HealthDataModel.fromJson(json['health_data'])
           : null,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : null,
-      updatedAt: json['updated_at'] != null 
-          ? DateTime.parse(json['updated_at']) 
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
           : DateTime.now(), // Mặc định là thời gian hiện tại nếu không có
     );
   }
 
   Map<String, dynamic> toJson() {
+    // Phân tách name thành first_name và last_name nếu có thể
+    String firstName = '';
+    String lastName = '';
+    String displayName = name ?? '';
+
+    if (name != null && name!.contains(' ')) {
+      List<String> nameParts = name!.split(' ');
+      lastName = nameParts.first;
+      firstName = nameParts.sublist(1).join(' ');
+    } else if (name != null) {
+      firstName = name!;
+    }
+
     return {
       'id': id,
-      'name': name,
+      'first_name': firstName,
+      'last_name': lastName,
+      'display_name': displayName,
       'email': email,
       'avatar': avatar,
       'phone_number': phoneNumber,
@@ -372,4 +401,4 @@ class ProfileCompletionModel extends ProfileCompletion {
       'missing_fields': missingFields,
     };
   }
-} 
+}

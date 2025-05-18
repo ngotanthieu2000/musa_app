@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/task.dart';
-import '../bloc/task_bloc.dart';
+import '../bloc/tasks_bloc.dart';
 import '../widgets/task_list_item.dart';
 import '../widgets/add_task_bottom_sheet.dart';
+import '../widgets/empty_tasks.dart';
 
 class TaskPage extends StatefulWidget {
   const TaskPage({Key? key}) : super(key: key);
@@ -20,7 +21,7 @@ class _TaskPageState extends State<TaskPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
-    context.read<TaskBloc>().add(const LoadTasksEvent());
+    context.read<TasksBloc>().add(FetchTasks());
   }
 
   @override
@@ -105,20 +106,24 @@ class _TaskPageState extends State<TaskPage> with TickerProviderStateMixin {
   }
 
   Widget _buildTaskList(TaskFilter filter) {
-    return BlocBuilder<TaskBloc, TaskState>(
+    return BlocBuilder<TasksBloc, TasksState>(
       builder: (context, state) {
         if (state is TasksLoading) {
           return const Center(child: CircularProgressIndicator());
-        } else if (state is TasksLoaded) {
-          final filteredTasks = _getFilteredTasks(state.tasks, filter);
-          
+        } else if (state is TasksLoaded || state is TaskActionSuccess) {
+          final tasks = state is TasksLoaded
+              ? state.tasks
+              : (state as TaskActionSuccess).tasks;
+
+          final filteredTasks = _getFilteredTasks(tasks, filter);
+
           if (filteredTasks.isEmpty) {
             return _buildEmptyState(filter);
           }
-          
+
           return RefreshIndicator(
             onRefresh: () async {
-              context.read<TaskBloc>().add(const LoadTasksEvent());
+              context.read<TasksBloc>().add(FetchTasks());
             },
             child: ListView.builder(
               padding: const EdgeInsets.only(top: 8, bottom: 80),
@@ -128,7 +133,7 @@ class _TaskPageState extends State<TaskPage> with TickerProviderStateMixin {
                 return TaskListItem(
                   task: task,
                   onToggle: () {
-                    context.read<TaskBloc>().add(ToggleTaskEvent(task.id));
+                    context.read<TasksBloc>().add(ToggleTaskCompletion(task.id));
                   },
                   onEdit: () {
                     _showAddTaskBottomSheet(task: task);
@@ -157,14 +162,14 @@ class _TaskPageState extends State<TaskPage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  state.message,
+                  state.userFriendlyMessage,
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: () {
-                    context.read<TaskBloc>().add(const LoadTasksEvent());
+                    context.read<TasksBloc>().add(FetchTasks());
                   },
                   icon: const Icon(Icons.refresh),
                   label: const Text('Thử lại'),
@@ -173,7 +178,7 @@ class _TaskPageState extends State<TaskPage> with TickerProviderStateMixin {
             ),
           );
         }
-        
+
         return const Center(child: Text('Không có dữ liệu'));
       },
     );
@@ -183,7 +188,7 @@ class _TaskPageState extends State<TaskPage> with TickerProviderStateMixin {
     String title;
     String message;
     IconData icon;
-    
+
     switch (filter) {
       case TaskFilter.all:
         title = 'Chưa có nhiệm vụ nào';
@@ -201,47 +206,13 @@ class _TaskPageState extends State<TaskPage> with TickerProviderStateMixin {
         icon = Icons.done_all;
         break;
     }
-    
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 72,
-            color: Theme.of(context).colorScheme.primaryContainer,
-          ),
-          const SizedBox(height: 24),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 24),
-          if (filter != TaskFilter.completed)
-            ElevatedButton.icon(
-              onPressed: () => _showAddTaskBottomSheet(),
-              icon: const Icon(Icons.add),
-              label: const Text('Thêm nhiệm vụ mới'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-            ),
-        ],
-      ),
+
+    return EmptyTasks(
+      title: title,
+      message: message,
+      icon: icon,
+      onAddTask: filter != TaskFilter.completed ? () => _showAddTaskBottomSheet() : null,
+      showAddButton: filter != TaskFilter.completed,
     );
   }
 
@@ -280,16 +251,10 @@ class _TaskPageState extends State<TaskPage> with TickerProviderStateMixin {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.read<TaskBloc>().add(DeleteTaskEvent(task.id));
+              context.read<TasksBloc>().add(DeleteTask(task.id));
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Đã xóa nhiệm vụ'),
-                  action: SnackBarAction(
-                    label: 'Hoàn tác',
-                    onPressed: () {
-                      context.read<TaskBloc>().add(AddTaskEvent(task));
-                    },
-                  ),
+                const SnackBar(
+                  content: Text('Đã xóa nhiệm vụ'),
                 ),
               );
             },
@@ -308,11 +273,11 @@ class _TaskPageState extends State<TaskPage> with TickerProviderStateMixin {
       case TaskFilter.all:
         return tasks;
       case TaskFilter.active:
-        return tasks.where((task) => !task.completed).toList();
+        return tasks.where((task) => !task.isCompleted).toList();
       case TaskFilter.completed:
-        return tasks.where((task) => task.completed).toList();
+        return tasks.where((task) => task.isCompleted).toList();
     }
   }
 }
 
-enum TaskFilter { all, active, completed } 
+enum TaskFilter { all, active, completed }

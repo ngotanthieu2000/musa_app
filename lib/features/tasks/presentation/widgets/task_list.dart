@@ -3,11 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/tasks_bloc.dart';
 import '../../domain/entities/task.dart';
 import 'task_list_item.dart';
+import 'add_task_bottom_sheet.dart';
 
 class TaskList extends StatelessWidget {
   final List<Task> tasks;
-  final TaskStatus? filter;
-  
+  final String? filter;
+
   const TaskList({
     super.key,
     required this.tasks,
@@ -17,9 +18,17 @@ class TaskList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Apply filter if provided
-    final List<Task> filteredTasks = filter != null
-        ? tasks.where((task) => task.status == filter).toList()
-        : tasks;
+    final List<Task> filteredTasks;
+
+    if (filter == null) {
+      filteredTasks = tasks;
+    } else if (filter == 'completed') {
+      filteredTasks = tasks.where((task) => task.isCompleted).toList();
+    } else if (filter == 'active') {
+      filteredTasks = tasks.where((task) => !task.isCompleted).toList();
+    } else {
+      filteredTasks = tasks;
+    }
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
@@ -62,27 +71,35 @@ class TaskList extends StatelessWidget {
     IconData iconData;
     String buttonText = 'Add a Task';
     VoidCallback onButtonPressed = () {
-      // Navigation to add task could be added here
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          width: MediaQuery.of(context).size.width * 0.9,
-          content: Text('Create a new task to get started'),
+      // Lấy TasksBloc từ context hiện tại
+      final tasksBloc = context.read<TasksBloc>();
+      print('*** _buildEmptyState.onButtonPressed: TasksBloc found ***');
+      print('*** _buildEmptyState.onButtonPressed: TasksBloc = $tasksBloc ***');
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => BlocProvider.value(
+          value: tasksBloc,
+          child: AddTaskBottomSheet(
+            tasksBloc: tasksBloc, // Truyền TasksBloc vào AddTaskBottomSheet
+          ),
         ),
       );
     };
-    
+
     if (filter == null) {
       message = "You don't have any tasks yet";
       iconData = Icons.assignment_outlined;
     } else {
       switch (filter) {
-        case TaskStatus.completed:
+        case 'completed':
           message = "You haven't completed any tasks yet";
           iconData = Icons.task_alt;
           buttonText = 'Mark Tasks as Complete';
           break;
-        case TaskStatus.inProgress:
+        case 'active':
           message = "You don't have any tasks in progress";
           iconData = Icons.pending_actions;
           buttonText = 'Start Working on a Task';
@@ -161,4 +178,4 @@ class TaskList extends StatelessWidget {
       ),
     );
   }
-} 
+}

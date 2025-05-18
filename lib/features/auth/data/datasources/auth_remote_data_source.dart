@@ -11,47 +11,52 @@ import '../models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
   /// Register new user
-  Future<AuthResponse> register(String name, String email, String password);
-  
+  Future<AuthResponse> register(String firstName, String lastName, String email, String password, String confirmPassword);
+
   /// Login user
   Future<AuthResponse> login(String email, String password);
-  
+
   /// Refresh token
   Future<AuthResponse> refreshToken(String refreshToken);
-  
+
   /// Logout user
   Future<void> logout();
-  
+
   /// Get current user information
   Future<UserModel> getCurrentUser();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final ApiClient apiClient;
-  
+
   AuthRemoteDataSourceImpl({required this.apiClient});
-  
+
   @override
-  Future<AuthResponse> register(String name, String email, String password) async {
+  Future<AuthResponse> register(String firstName, String lastName, String email, String password, String confirmPassword) async {
     try {
+      print('AuthRemoteDataSource: Attempting register for: $email');
       final response = await apiClient.post(
         '/api/v1/auth/register',
         data: {
-          'name': name,
+          'first_name': firstName,
+          'last_name': lastName,
           'email': email,
           'password': password,
+          'confirm_password': confirmPassword,
         },
       );
-      
+
+      print('AuthRemoteDataSource: Raw register response: $response');
       return AuthResponse.fromJson(response);
     } catch (e) {
+      print('AuthRemoteDataSource: Register error: $e');
       throw ServerException(
         message: e.toString(),
         errorType: ApiErrorType.server
       );
     }
   }
-  
+
   @override
   Future<AuthResponse> login(String email, String password) async {
     try {
@@ -63,9 +68,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'password': password,
         },
       );
-      
+
       print('AuthRemoteDataSource: Raw login response: $response');
-      
+
       // Đảm bảo response là Map
       if (response is! Map<String, dynamic>) {
         print('AuthRemoteDataSource: Invalid response type: ${response.runtimeType}');
@@ -74,15 +79,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           errorType: ApiErrorType.server
         );
       }
-      
+
       // Tạo bản sao để không ảnh hưởng đến dữ liệu gốc
       Map<String, dynamic> processedResponse = Map<String, dynamic>.from(response);
-      
+
       // Chắc chắn có trường success
       if (!processedResponse.containsKey('success')) {
         processedResponse['success'] = true;
       }
-      
+
       // Dựng UserModel từ User object trong response nếu có
       UserModel? user;
       if (processedResponse.containsKey('user') && processedResponse['user'] != null) {
@@ -92,7 +97,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           print('AuthRemoteDataSource: Error parsing user data: $e');
         }
       }
-      
+
       // Tạo AuthResponse thủ công để đảm bảo đúng cấu trúc
       var authResponse = AuthResponse(
         success: true,
@@ -100,11 +105,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         refreshToken: processedResponse['refresh_token'],
         user: user,
       );
-      
+
       // In log để debug
       print('AuthRemoteDataSource: Final authResponse: $authResponse');
       print('AuthRemoteDataSource: Token values: ${authResponse.accessToken}, ${authResponse.refreshToken}');
-      
+
       return authResponse;
     } catch (e) {
       if (e is ServerException) rethrow;
@@ -115,7 +120,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     }
   }
-  
+
   @override
   Future<AuthResponse> refreshToken(String refreshToken) async {
     try {
@@ -125,7 +130,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'refresh_token': refreshToken,
         },
       );
-      
+
       return AuthResponse.fromJson(response);
     } catch (e) {
       throw ServerException(
@@ -134,7 +139,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     }
   }
-  
+
   @override
   Future<void> logout() async {
     try {
@@ -146,7 +151,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     }
   }
-  
+
   @override
   Future<UserModel> getCurrentUser() async {
     try {
@@ -159,4 +164,4 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     }
   }
-} 
+}

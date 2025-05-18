@@ -32,6 +32,7 @@ import 'core/theme/app_colors.dart';
 import 'core/di/injection_container.dart' as di;
 import 'features/profile/presentation/bloc/profile_bloc.dart';
 import 'features/navigation/presentation/bloc/navigation_bloc.dart';
+import 'features/persona/presentation/bloc/persona_bloc.dart';
 import 'routes/app_router.dart';
 
 class App extends StatefulWidget {
@@ -76,6 +77,9 @@ class _AppState extends State<App> {
         ),
         BlocProvider<NavigationBloc>(
           create: (context) => di.sl<NavigationBloc>(),
+        ),
+        BlocProvider<PersonaBloc>(
+          create: (context) => di.sl<PersonaBloc>(),
         ),
       ],
       child: MaterialApp.router(
@@ -133,4 +137,4 @@ class GoRouterRefreshNotifier extends ChangeNotifier {
     _authChangeSub.cancel();
     super.dispose();
   }
-} 
+}

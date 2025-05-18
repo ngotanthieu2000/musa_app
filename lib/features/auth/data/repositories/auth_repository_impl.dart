@@ -19,11 +19,11 @@ class AuthRepositoryImpl implements AuthRepository {
   final ApiClient _apiClient;
   final SecureStorage _secureStorage;
   final AuthRemoteDataSource _remoteDataSource;
-  
+
   static const String _keyAccessToken = 'access_token';
   static const String _keyRefreshToken = 'refresh_token';
   static const String _keyExpiresAt = 'expires_at';
-  
+
   AuthRepositoryImpl({
     required ApiClient apiClient,
     required SecureStorage secureStorage,
@@ -31,16 +31,31 @@ class AuthRepositoryImpl implements AuthRepository {
   })  : _apiClient = apiClient,
         _secureStorage = secureStorage,
         _remoteDataSource = remoteDataSource;
-  
+
   @override
   Future<Either<Failure, User>> register({
     required String email,
     required String password,
-    String? name,
+    required String confirmPassword,
+    required String firstName,
+    required String lastName,
   }) async {
     try {
-      final response = await _remoteDataSource.register(name ?? email.split('@').first, email, password);
-      
+      print('AuthRepositoryImpl: Registering user: $firstName $lastName, $email');
+      final response = await _remoteDataSource.register(firstName, lastName, email, password, confirmPassword);
+
+      // Save tokens if available
+      if (response.accessToken != null && response.accessToken!.isNotEmpty) {
+        print('AuthRepositoryImpl: Saving access token from registration');
+        await _secureStorage.saveAccessToken(response.accessToken!);
+        _apiClient.setAuthToken(response.accessToken!);
+      }
+
+      if (response.refreshToken != null && response.refreshToken!.isNotEmpty) {
+        print('AuthRepositoryImpl: Saving refresh token from registration');
+        await _secureStorage.saveRefreshToken(response.refreshToken!);
+      }
+
       if (response.user != null) {
         return Right(response.user!);
       } else {
@@ -50,19 +65,21 @@ class AuthRepositoryImpl implements AuthRepository {
         ));
       }
     } on ServerException catch (e) {
+      print('AuthRepositoryImpl: Server exception during registration: ${e.message}');
       return Left(ServerFailure(
         message: e.message,
         errorType: e.errorType,
         data: e.data,
       ));
     } catch (e) {
+      print('AuthRepositoryImpl: Unexpected error during registration: $e');
       return Left(ServerFailure(
         message: e.toString(),
         errorType: ApiErrorType.unknown,
       ));
     }
   }
-  
+
   @override
   Future<Either<Failure, User>> login({
     required String email,
@@ -71,9 +88,9 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       print('AuthRepositoryImpl: Calling login with email: $email');
       final tokens = await _remoteDataSource.login(email, password);
-      
+
       print('AuthRepositoryImpl: Received tokens response: $tokens');
-      
+
       // Kiểm tra access token và save nếu có
       if (tokens.accessToken != null && tokens.accessToken!.isNotEmpty) {
         print('AuthRepositoryImpl: Saving access token');
@@ -86,7 +103,7 @@ class AuthRepositoryImpl implements AuthRepository {
           errorType: ApiErrorType.auth,
         ));
       }
-      
+
       // Kiểm tra refresh token và save nếu có
       if (tokens.refreshToken != null && tokens.refreshToken!.isNotEmpty) {
         print('AuthRepositoryImpl: Saving refresh token');
@@ -94,13 +111,13 @@ class AuthRepositoryImpl implements AuthRepository {
       } else {
         print('AuthRepositoryImpl: No valid refresh token received, but continuing');
       }
-      
+
       // Kiểm tra user và return nếu có
       if (tokens.user != null) {
         print('AuthRepositoryImpl: User data received: ${tokens.user}');
         return Right(tokens.user!);
-      } 
-      
+      }
+
       // Nếu không có user data, lấy user từ API
       print('AuthRepositoryImpl: No user data, fetching from API');
       try {
@@ -130,19 +147,19 @@ class AuthRepositoryImpl implements AuthRepository {
       ));
     }
   }
-  
+
   @override
   Future<Either<Failure, bool>> logout() async {
     try {
       await _remoteDataSource.logout();
-      
+
       // Clear tokens
       await _secureStorage.delete(_keyAccessToken);
       await _secureStorage.delete(_keyRefreshToken);
-      
+
       // Clear the token from API client
       _apiClient.clearAuthToken();
-      
+
       return const Right(true);
     } on ServerException catch (e) {
       return Left(ServerFailure(
@@ -157,34 +174,34 @@ class AuthRepositoryImpl implements AuthRepository {
       ));
     }
   }
-  
+
   @override
   Future<Either<Failure, AuthTokens>> refreshToken({
     required String refreshToken,
   }) async {
     try {
       print('AuthRepository: Attempting to refresh token');
-      
+
       // Kiểm tra refreshToken truyền vào
       if (refreshToken.isEmpty) {
         // Nếu không có, thử lấy từ storage
-        final currentRefreshToken = await _secureStorage.getRefreshToken();
-        
-        if (currentRefreshToken == null || currentRefreshToken.isEmpty) {
+      final currentRefreshToken = await _secureStorage.getRefreshToken();
+
+      if (currentRefreshToken == null || currentRefreshToken.isEmpty) {
           print('AuthRepository: No refresh token available');
-          return Left(AuthFailure(
-            message: 'Không có refresh token',
-            errorType: ApiErrorType.auth,
-          ));
-        }
-        
+        return Left(AuthFailure(
+          message: 'Không có refresh token',
+          errorType: ApiErrorType.auth,
+        ));
+      }
+
         // Sử dụng token từ storage
         refreshToken = currentRefreshToken;
       }
-      
+
       print('AuthRepository: Calling refresh token API');
       final tokens = await _remoteDataSource.refreshToken(refreshToken);
-      
+
       // Lưu token mới
       if (tokens.accessToken != null && tokens.accessToken!.isNotEmpty) {
         print('AuthRepository: Saving new access token');
@@ -197,13 +214,13 @@ class AuthRepositoryImpl implements AuthRepository {
           errorType: ApiErrorType.auth,
         ));
       }
-      
+
       // Lưu refresh token mới nếu có
       if (tokens.refreshToken != null && tokens.refreshToken!.isNotEmpty) {
         print('AuthRepository: Saving new refresh token');
         await _secureStorage.saveRefreshToken(tokens.refreshToken!);
       }
-      
+
       return Right(AuthTokens(
         accessToken: tokens.accessToken ?? '',
         refreshToken: tokens.refreshToken ?? '',
@@ -224,7 +241,7 @@ class AuthRepositoryImpl implements AuthRepository {
       ));
     }
   }
-  
+
   @override
   Future<Either<Failure, User>> getCurrentUser() async {
     try {
@@ -243,11 +260,18 @@ class AuthRepositoryImpl implements AuthRepository {
       ));
     }
   }
-  
+
   @override
   Future<Either<Failure, bool>> isLoggedIn() async {
     try {
       final token = await _secureStorage.getAccessToken();
+
+      // If token exists, set it in the API client
+      if (token != null && token.isNotEmpty) {
+        print('AuthRepositoryImpl: Setting existing token in API client');
+        _apiClient.setAuthToken(token);
+      }
+
       return Right(token != null && token.isNotEmpty);
     } catch (e) {
       return Left(AuthFailure(
@@ -256,23 +280,23 @@ class AuthRepositoryImpl implements AuthRepository {
       ));
     }
   }
-  
+
   @override
   Future<Either<Failure, User>> refreshCurrentUser() async {
     try {
       // Get current user from API
       final userResponse = await _remoteDataSource.getCurrentUser();
-      
+
       // Update auth token for future requests
       final token = await _secureStorage.getAccessToken();
       if (token != null) {
         _apiClient.setAuthToken(token);
       }
-      
+
       return Right(userResponse);
     } on ServerException catch (e) {
       return Left(ServerFailure(
-        message: e.message, 
+        message: e.message,
         errorType: e.errorType,
         data: e.data
       ));
@@ -283,12 +307,12 @@ class AuthRepositoryImpl implements AuthRepository {
       ));
     }
   }
-  
+
   // Helper method to save tokens to secure storage
   Future<void> _saveTokens(AuthTokensModel tokens) async {
     await _secureStorage.write(_keyAccessToken, tokens.accessToken);
     await _secureStorage.write(_keyRefreshToken, tokens.refreshToken);
-    
+
     if (tokens.expiresAt != null) {
       await _secureStorage.write(_keyExpiresAt, tokens.expiresAt!.toIso8601String());
     } else {

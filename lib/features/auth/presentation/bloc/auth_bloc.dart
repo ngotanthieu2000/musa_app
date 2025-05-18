@@ -26,7 +26,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final GetCurrentUserUseCase _getCurrentUserUseCase;
   final IsLoggedInUseCase _isLoggedInUseCase;
   final ProfileBloc? _profileBloc;
-  
+
   AuthBloc({
     required RegisterUseCase registerUseCase,
     required LoginUseCase loginUseCase,
@@ -50,19 +50,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthRefreshTokenEvent>(_onAuthRefreshToken);
     on<AuthGetCurrentUserEvent>(_onAuthGetCurrentUser);
   }
-  
+
   Future<void> _onAuthCheckStatus(
     AuthCheckStatusEvent event,
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    
+
+    print('AuthBloc: Checking authentication status');
     final result = await _isLoggedInUseCase(const NoParams());
-    
+
     result.fold(
-      (failure) => emit(AuthUnauthenticated()),
+      (failure) {
+        print('AuthBloc: Error checking auth status: ${failure.message}');
+        emit(AuthUnauthenticated());
+      },
       (isLoggedIn) {
+        print('AuthBloc: Auth status check result: $isLoggedIn');
         if (isLoggedIn) {
+          // If logged in, get the current user which will also set up the token
           add(AuthGetCurrentUserEvent());
         } else {
           emit(AuthUnauthenticated());
@@ -70,16 +76,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
     );
   }
-  
+
   Future<void> _onAuthRegister(
     AuthRegisterEvent event,
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    
+
     // Simple validation of email and password
     final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    
+
     if (!emailRegExp.hasMatch(event.email)) {
       emit(AuthError(
         message: 'Email không hợp lệ',
@@ -87,48 +93,91 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ));
       return;
     }
-    
-    if (event.password.length < 6) {
+
+    if (event.password.length < 8) {
       emit(AuthError(
-        message: 'Mật khẩu phải có ít nhất 6 ký tự',
+        message: 'Mật khẩu phải có ít nhất 8 ký tự',
         errorType: ApiErrorType.validation
       ));
       return;
     }
-    
-    // Call real register API
-    final result = await _registerUseCase(
-      RegisterParams(
-        email: event.email,
-        password: event.password,
-        name: event.name,
-      ),
-    );
-    
-    result.fold(
-      (failure) => emit(AuthError(
-        message: failure.message,
-        errorType: failure.errorType,
-        data: failure.data
-      )),
-      (user) {
-        emit(AuthAuthenticated(user: user));
-        
-        // Lấy thông tin profile sau khi đăng ký thành công
-        _profileBloc?.add(GetProfileEvent());
-      },
-    );
+
+    // Kiểm tra mật khẩu có chứa chữ hoa, chữ thường và số
+    bool hasUppercase = event.password.contains(RegExp(r'[A-Z]'));
+    bool hasLowercase = event.password.contains(RegExp(r'[a-z]'));
+    bool hasDigits = event.password.contains(RegExp(r'[0-9]'));
+
+    if (!hasUppercase || !hasLowercase || !hasDigits) {
+      List<String> requirements = [];
+      if (!hasUppercase) requirements.add('chữ hoa');
+      if (!hasLowercase) requirements.add('chữ thường');
+      if (!hasDigits) requirements.add('số');
+
+      emit(AuthError(
+        message: 'Mật khẩu phải chứa: ${requirements.join(', ')}',
+        errorType: ApiErrorType.validation
+      ));
+      return;
+    }
+
+    // Kiểm tra mật khẩu xác nhận
+    if (event.password != event.confirmPassword) {
+      emit(AuthError(
+        message: 'Mật khẩu xác nhận không khớp',
+        errorType: ApiErrorType.validation
+      ));
+      return;
+    }
+
+    try {
+      print('AuthBloc: Attempting to register user: ${event.email}');
+
+      // Call real register API
+      final result = await _registerUseCase(
+        RegisterParams(
+          email: event.email,
+          password: event.password,
+          confirmPassword: event.confirmPassword,
+          firstName: event.firstName,
+          lastName: event.lastName,
+        ),
+      );
+
+      result.fold(
+        (failure) {
+          print('AuthBloc: Registration failed with error: ${failure.message}');
+          emit(AuthError(
+            message: failure.message,
+            errorType: failure.errorType,
+            data: failure.data
+          ));
+        },
+        (user) {
+          print('AuthBloc: Registration successful for user: ${user.email}');
+          emit(AuthAuthenticated(user: user));
+
+          // Lấy thông tin profile sau khi đăng ký thành công
+          _profileBloc?.add(GetProfileEvent());
+        },
+      );
+    } catch (e) {
+      print('AuthBloc: Unexpected error during registration: $e');
+      emit(AuthError(
+        message: 'Unexpected error: $e',
+        errorType: ApiErrorType.unknown
+      ));
+    }
   }
-  
+
   Future<void> _onAuthLogin(
     AuthLoginEvent event,
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    
+
     // Simple validation of email and password
     final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    
+
     if (!emailRegExp.hasMatch(event.email)) {
       emit(AuthError(
         message: 'Email không hợp lệ',
@@ -136,7 +185,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ));
       return;
     }
-    
+
     if (event.password.length < 6) {
       emit(AuthError(
         message: 'Mật khẩu phải có ít nhất 6 ký tự',
@@ -144,7 +193,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ));
       return;
     }
-    
+
     // Call real login API
     final result = await _loginUseCase(
       LoginParams(
@@ -152,7 +201,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       ),
     );
-    
+
     result.fold(
       (failure) => emit(AuthError(
         message: failure.message,
@@ -161,21 +210,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       )),
       (user) {
         emit(AuthAuthenticated(user: user));
-        
+
         // Lấy thông tin profile sau khi đăng nhập thành công
         _profileBloc?.add(GetProfileEvent());
       },
     );
   }
-  
+
   Future<void> _onAuthLogout(
     AuthLogoutEvent event,
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    
+
     final result = await _logoutUseCase(const NoParams());
-    
+
     result.fold(
       (failure) => emit(AuthError(
         message: failure.message,
@@ -185,17 +234,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (_) => emit(AuthUnauthenticated()),
     );
   }
-  
+
   Future<void> _onAuthRefreshToken(
     AuthRefreshTokenEvent event,
     Emitter<AuthState> emit,
   ) async {
     final currentState = state;
-    
+
     final result = await _refreshTokenUseCase(
       RefreshTokenParams(refreshToken: event.refreshToken),
     );
-    
+
     result.fold(
       (failure) {
         // Nếu refresh token thất bại, đăng xuất người dùng
@@ -213,28 +262,39 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
     );
   }
-  
+
   Future<void> _onAuthGetCurrentUser(
     AuthGetCurrentUserEvent event,
     Emitter<AuthState> emit,
   ) async {
     if (state is AuthAuthenticated) return; // Already have user info
-    
+
     emit(AuthLoading());
-    
+    print('AuthBloc: Getting current user');
+
     final result = await _getCurrentUserUseCase(const NoParams());
-    
+
     result.fold(
-      (failure) => emit(AuthUnauthenticated()),
+      (failure) {
+        print('AuthBloc: Failed to get current user: ${failure.message}');
+        // If we get an auth error, the token might be invalid
+        if (failure is AuthFailure || failure.errorType == ApiErrorType.auth) {
+          print('AuthBloc: Auth error, logging out user');
+          add(AuthLogoutEvent());
+        }
+        emit(AuthUnauthenticated());
+      },
       (user) {
+        print('AuthBloc: Successfully got current user: ${user.email}');
         emit(AuthAuthenticated(user: user));
-        
+
         // Lấy thông tin profile sau khi lấy thông tin user hiện tại thành công
+        print('AuthBloc: Fetching profile information');
         _profileBloc?.add(GetProfileEvent());
       },
     );
   }
-  
+
   String _mapFailureToMessage(Failure failure) {
     return failure.userFriendlyMessage;
   }

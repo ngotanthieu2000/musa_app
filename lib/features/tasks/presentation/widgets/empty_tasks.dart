@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
-class EmptyTasksWidget extends StatelessWidget {
-  final VoidCallback onAddTask;
+class EmptyTasks extends StatelessWidget {
+  final String title;
+  final String message;
+  final IconData icon;
+  final VoidCallback? onAddTask;
+  final bool showAddButton;
 
-  const EmptyTasksWidget({
-    super.key,
-    required this.onAddTask,
-  });
+  const EmptyTasks({
+    Key? key,
+    required this.title,
+    required this.message,
+    required this.icon,
+    this.onAddTask,
+    this.showAddButton = true,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -20,20 +28,27 @@ class EmptyTasksWidget extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Animation
-              SizedBox(
-                height: 200,
-                child: Lottie.network(
-                  'https://assets5.lottiefiles.com/packages/lf20_ydo1amjm.json',
-                  repeat: true,
-                  animate: true,
+              // Animation or Icon
+              if (icon == Icons.assignment_outlined)
+                SizedBox(
+                  height: 200,
+                  child: Lottie.network(
+                    'https://assets5.lottiefiles.com/packages/lf20_ydo1amjm.json',
+                    repeat: true,
+                    animate: true,
+                  ),
+                )
+              else
+                Icon(
+                  icon,
+                  size: 100,
+                  color: theme.colorScheme.primaryContainer,
                 ),
-              ),
               const SizedBox(height: 24),
-              
+
               // Title
               Text(
-                'Chưa có nhiệm vụ nào',
+                title,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
@@ -41,10 +56,10 @@ class EmptyTasksWidget extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              
+
               // Description
               Text(
-                'Bạn chưa có nhiệm vụ nào. Tạo nhiệm vụ đầu tiên để bắt đầu quản lý công việc của mình.',
+                message,
                 style: TextStyle(
                   fontSize: 16,
                   color: theme.colorScheme.onSurfaceVariant,
@@ -52,25 +67,26 @@ class EmptyTasksWidget extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              
+
               // Add task button
-              FilledButton.icon(
-                onPressed: onAddTask,
-                icon: const Icon(Icons.add_task),
-                label: const Text('Tạo nhiệm vụ mới'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              if (showAddButton && onAddTask != null)
+                FilledButton.icon(
+                  onPressed: onAddTask,
+                  icon: const Icon(Icons.add_task),
+                  label: const Text('Tạo nhiệm vụ mới'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
-              ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Tips
               _buildTipCard(
                 context,
@@ -92,7 +108,7 @@ class EmptyTasksWidget extends StatelessWidget {
     required String content,
   }) {
     final theme = Theme.of(context);
-    
+
     return Container(
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(16),
@@ -139,4 +155,4 @@ class EmptyTasksWidget extends StatelessWidget {
       ),
     );
   }
-} 
+}

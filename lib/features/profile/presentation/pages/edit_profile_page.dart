@@ -11,7 +11,7 @@ import '../bloc/profile_bloc.dart';
 
 class EditProfilePage extends StatefulWidget {
   final Profile profile;
-  
+
   const EditProfilePage({
     Key? key,
     required this.profile,
@@ -31,20 +31,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool _uploading = false;
   bool _imageChanged = false;
   bool _isSubmitting = false;
-  
+  bool _hasSubmitted = false;
+
   @override
   void initState() {
     super.initState();
     _initControllers();
   }
-  
+
   void _initControllers() {
     _nameController = TextEditingController(text: widget.profile.name ?? '');
     _emailController = TextEditingController(text: widget.profile.email ?? '');
     _phoneController = TextEditingController(text: widget.profile.phoneNumber ?? '');
     _bioController = TextEditingController(text: widget.profile.bio ?? '');
   }
-  
+
   @override
   void didUpdateWidget(EditProfilePage oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -54,33 +55,33 @@ class _EditProfilePageState extends State<EditProfilePage> {
       _initControllers();
     }
   }
-  
+
   void _disposeControllers() {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _bioController.dispose();
   }
-  
+
   @override
   void dispose() {
     _disposeControllers();
     super.dispose();
   }
-  
+
   Future<void> _pickImage(ImageSource source) async {
     try {
       setState(() {
         _uploading = true;
       });
-      
+
       final pickedFile = await ImagePicker().pickImage(
         source: source,
         maxWidth: 800,
         maxHeight: 800,
         imageQuality: 85,
       );
-      
+
       if (pickedFile != null) {
         setState(() {
           _imageFile = File(pickedFile.path);
@@ -96,7 +97,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       setState(() {
         _uploading = false;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -107,7 +108,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
     }
   }
-  
+
   void _showImageSourceActionSheet() {
     showModalBottomSheet(
       context: context,
@@ -137,40 +138,56 @@ class _EditProfilePageState extends State<EditProfilePage> {
       },
     );
   }
-  
+
   void _submitForm() {
     if (_formKey.currentState!.validate() && !_isSubmitting) {
       setState(() {
         _isSubmitting = true;
+        _hasSubmitted = true;
       });
-      
-      // Chuẩn bị dữ liệu profile để gửi đi
+
+      // Phân tách họ và tên
+      String fullName = _nameController.text.trim();
+      String firstName = fullName;
+      String lastName = "";
+
+      // Tách họ và tên nếu có khoảng trắng
+      if (fullName.contains(" ")) {
+        List<String> nameParts = fullName.split(" ");
+        lastName = nameParts.first; // Họ là phần đầu tiên
+        firstName = nameParts.sublist(1).join(" "); // Tên là phần còn lại
+      }
+
+      // Chuẩn bị dữ liệu profile để gửi đi theo đúng định dạng backend mong đợi
       Map<String, dynamic> updatedProfile = {
         'id': widget.profile.id, // Đảm bảo có ID
-        'name': _nameController.text,
-        'email': _emailController.text,
+        'first_name': firstName,
+        'last_name': lastName,
+        'display_name': fullName, // Thêm display_name
         'phone_number': _phoneController.text,
         'bio': _bioController.text,
       };
-      
+
       // Nếu có ảnh mới, thêm vào form data
       if (_imageChanged && _imageFile != null) {
         updatedProfile['avatar_file'] = _imageFile!.path;
       }
-      
+
+      print('DEBUG: Sending profile update with data: $updatedProfile');
+
       // Gửi sự kiện cập nhật profile
       context.read<ProfileBloc>().add(
         UpdateProfileEvent(profile: updatedProfile),
       );
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     final colorScheme = theme.colorScheme;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -212,25 +229,52 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 backgroundColor: Colors.red,
               ),
             );
-          } else if (state is ProfileLoaded) {
+          } else if (state is ProfileActionSuccess && _hasSubmitted) {
+            // Xử lý thông báo thành công (từ xử lý đặc biệt trong Bloc)
+            print('DEBUG: Received ProfileActionSuccess in UI');
+            setState(() {
+              _isSubmitting = false;
+              _hasSubmitted = false;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.green,
+              ),
+            );
+
+            // Quay lại trang profile
+            Future.delayed(const Duration(milliseconds: 800), () {
+              if (mounted) {
+                print('DEBUG: Navigating back to profile page after ActionSuccess');
+                context.go('/profile');
+              }
+            });
+          } else if (state is ProfileLoaded && _hasSubmitted) {
+            // Chỉ xử lý khi đã submit form và nhận được state ProfileLoaded
+
             // Kiểm tra nếu profile vừa được cập nhật
-            if (widget.profile.id == state.profile.id && 
-                (widget.profile.updatedAt == null || 
-                state.profile.updatedAt != null && 
-                state.profile.updatedAt!.isAfter(widget.profile.updatedAt!))) {
-              
+            if (widget.profile.id == state.profile.id) {
+              print('DEBUG: Profile update successful in UI, returning to profile page');
+              setState(() {
+                _isSubmitting = false;
+                _hasSubmitted = false; // Reset lại trạng thái submit
+              });
+
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Hồ sơ đã được cập nhật thành công'),
                   backgroundColor: Colors.green,
                 ),
               );
-              
+
               // Đóng màn hình edit-profile sau khi cập nhật thành công
               // và trở về trang profile để hiển thị dữ liệu mới
               Future.delayed(const Duration(milliseconds: 800), () {
                 if (mounted) {
                   // Quay về trang profile
+                  print('DEBUG: Navigating back to profile page');
                   context.go('/profile');
                 }
               });
@@ -246,7 +290,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
             );
           }
-          
+
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: Form(
@@ -291,7 +335,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                             : _buildDefaultAvatar(textTheme, colorScheme),
                                   ),
                                 ),
-                          
+
                           // Edit button
                           Positioned(
                             bottom: 0,
@@ -320,7 +364,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Fullname field with validation
                     TextFormField(
                       controller: _nameController,
@@ -350,7 +394,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Email field with validation
                     TextFormField(
                       controller: _emailController,
@@ -382,7 +426,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Phone field with validation
                     TextFormField(
                       controller: _phoneController,
@@ -413,7 +457,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Bio field - optional
                     TextFormField(
                       controller: _bioController,
@@ -440,7 +484,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       textInputAction: TextInputAction.done,
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Submit button
                     ElevatedButton(
                       onPressed: _isSubmitting ? null : _submitForm,
@@ -453,7 +497,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ),
                         elevation: 2,
                       ),
-                      child: _isSubmitting 
+                      child: _isSubmitting
                           ? const SizedBox(
                               width: 24,
                               height: 24,
@@ -479,7 +523,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ),
     );
   }
-  
+
   Widget _buildDefaultAvatar(TextTheme textTheme, ColorScheme colorScheme) {
     return Center(
       child: Text(
@@ -493,4 +537,4 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ),
     );
   }
-} 
+}

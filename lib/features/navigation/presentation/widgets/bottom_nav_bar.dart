@@ -17,8 +17,9 @@ class BottomNavBar extends StatelessWidget {
       type: BottomNavigationBarType.fixed,
       currentIndex: currentIndex,
       onTap: (index) {
+        if (index == currentIndex) return;
+
         if (index == 3) {
-          // Navigate to profile using router
           context.go('/profile');
         } else {
           onTap(index);

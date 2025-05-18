@@ -20,13 +20,21 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
+  bool _isInitialLoad = true;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    context.read<ProfileBloc>().add(const GetProfileEvent());
+    // Tải profile khi khởi tạo
+    _loadProfileData();
   }
   
+  void _loadProfileData() {
+    print('DEBUG: Loading profile data in ProfilePage');
+    context.read<ProfileBloc>().add(const GetProfileEvent());
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -37,7 +45,8 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       // Tải lại profile khi ứng dụng trở lại foreground
-      context.read<ProfileBloc>().add(const GetProfileEvent());
+      print('DEBUG: App resumed, reloading profile');
+      _loadProfileData();
     }
   }
   
@@ -45,10 +54,17 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final route = ModalRoute.of(context);
-    if (route != null && route.isCurrent) {
-      // Trang profile đang active, tải lại dữ liệu
-      context.read<ProfileBloc>().add(const GetProfileEvent());
+    
+    // Chỉ gọi khi không phải lần tải đầu tiên (đã xử lý ở initState)
+    if (!_isInitialLoad) {
+      final route = ModalRoute.of(context);
+      if (route != null && route.isCurrent) {
+        // Trang profile đang active, tải lại dữ liệu
+        print('DEBUG: ProfilePage became active again, reloading data');
+        _loadProfileData();
+      }
+    } else {
+      _isInitialLoad = false;
     }
   }
 

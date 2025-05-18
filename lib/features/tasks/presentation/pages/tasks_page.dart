@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/task.dart';
 import '../bloc/tasks_bloc.dart';
 import '../widgets/task_list.dart';
+import '../widgets/add_task_bottom_sheet.dart';
 
 class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
@@ -13,7 +14,7 @@ class TasksPage extends StatefulWidget {
 
 class _TasksPageState extends State<TasksPage> with TickerProviderStateMixin {
   late TabController _tabController;
-  
+
   @override
   void initState() {
     super.initState();
@@ -86,8 +87,10 @@ class _TasksPageState extends State<TasksPage> with TickerProviderStateMixin {
             return _buildLoadingState();
           } else if (state is TasksLoaded) {
             return _buildTasksContent(state.tasks);
+          } else if (state is TaskActionSuccess) {
+            return _buildTasksContent(state.tasks);
           } else if (state is TasksError) {
-            return _buildErrorState(state.message);
+            return _buildErrorState(state.userFriendlyMessage);
           } else {
             return const Center(child: Text('Unknown state'));
           }
@@ -114,8 +117,8 @@ class _TasksPageState extends State<TasksPage> with TickerProviderStateMixin {
       controller: _tabController,
       children: [
         TaskList(tasks: tasks, filter: null),
-        TaskList(tasks: tasks, filter: TaskStatus.inProgress),
-        TaskList(tasks: tasks, filter: TaskStatus.completed),
+        TaskList(tasks: tasks, filter: 'active'),
+        TaskList(tasks: tasks, filter: 'completed'),
       ],
     );
   }
@@ -188,16 +191,34 @@ class _TasksPageState extends State<TasksPage> with TickerProviderStateMixin {
   Widget _buildFloatingActionButton() {
     return FloatingActionButton.extended(
       onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            width: MediaQuery.of(context).size.width * 0.9,
-            content: const Text('Add task functionality coming soon'),
-          ),
-        );
+        _showAddTaskBottomSheet(context);
       },
       label: const Text('Add Task'),
       icon: const Icon(Icons.add),
     );
   }
-} 
+
+  void _showAddTaskBottomSheet(BuildContext context) {
+    // Lấy TasksBloc từ context hiện tại
+    final tasksBloc = context.read<TasksBloc>();
+    print('*** _showAddTaskBottomSheet: TasksBloc found ***');
+    print('*** _showAddTaskBottomSheet: TasksBloc = $tasksBloc ***');
+
+    // Hiển thị bottom sheet với BlocProvider để đảm bảo TasksBloc có sẵn
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext bottomSheetContext) {
+        // Sử dụng BlocProvider.value để truyền TasksBloc hiện có
+        return BlocProvider.value(
+          value: tasksBloc,
+          child: AddTaskBottomSheet(
+            tasksBloc: tasksBloc,
+          ),
+        );
+      },
+    );
+    print('*** _showAddTaskBottomSheet: Bottom sheet shown ***');
+  }
+}

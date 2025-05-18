@@ -21,7 +21,7 @@ class SplashPage extends StatelessWidget {
         listener: (context, state) {
           if (state is SplashLoaded) {
             if (state.isAuthenticated) {
-              context.go('/');
+              context.go('/home');
             } else {
               context.go('/welcome');
             }

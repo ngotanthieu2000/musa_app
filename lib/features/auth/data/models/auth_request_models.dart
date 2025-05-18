@@ -7,16 +7,26 @@ part 'auth_request_models.g.dart';
 class RegisterRequest {
   final String email;
   final String password;
-  final String? name;
-  
+
+  @JsonKey(name: 'confirm_password')
+  final String confirmPassword;
+
+  @JsonKey(name: 'first_name')
+  final String firstName;
+
+  @JsonKey(name: 'last_name')
+  final String lastName;
+
   RegisterRequest({
     required this.email,
     required this.password,
-    this.name,
+    required this.confirmPassword,
+    required this.firstName,
+    required this.lastName,
   });
-  
+
   factory RegisterRequest.fromJson(Map<String, dynamic> json) => _$RegisterRequestFromJson(json);
-  
+
   Map<String, dynamic> toJson() => _$RegisterRequestToJson(this);
 }
 
@@ -25,14 +35,14 @@ class RegisterRequest {
 class LoginRequest {
   final String email;
   final String password;
-  
+
   LoginRequest({
     required this.email,
     required this.password,
   });
-  
+
   factory LoginRequest.fromJson(Map<String, dynamic> json) => _$LoginRequestFromJson(json);
-  
+
   Map<String, dynamic> toJson() => _$LoginRequestToJson(this);
 }
 
@@ -41,12 +51,12 @@ class LoginRequest {
 class RefreshTokenRequest {
   @JsonKey(name: 'refresh_token')
   final String refreshToken;
-  
+
   RefreshTokenRequest({
     required this.refreshToken,
   });
-  
+
   factory RefreshTokenRequest.fromJson(Map<String, dynamic> json) => _$RefreshTokenRequestFromJson(json);
-  
+
   Map<String, dynamic> toJson() => _$RefreshTokenRequestToJson(this);
-} 
+}
