@@ -11,7 +11,7 @@ abstract class TaskRemoteDataSource {
   Future<TaskModel> createTask(Map<String, dynamic> taskData);
   Future<TaskModel> updateTask(String id, Map<String, dynamic> taskData);
   Future<void> deleteTask(String id);
-  Future<void> toggleTaskCompletion(String id);
+  Future<TaskModel> toggleTaskCompletion(String id);
   Future<SubTaskModel> addSubTask(String taskId, Map<String, dynamic> subTaskData);
   Future<void> updateSubTask(String taskId, String subTaskId, Map<String, dynamic> subTaskData);
   Future<ReminderModel> addReminder(String taskId, Map<String, dynamic> reminderData);
@@ -467,10 +467,15 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         print('Task deleted successfully');
+        return; // Trả về thành công
       } else if (response.statusCode == 404) {
         print('Task not found');
+        // Ném ngoại lệ với thông báo lỗi cụ thể
+        throw Exception('Task not found: $id');
       } else if (response.statusCode == 401) {
         print('Unauthorized: Please login again');
+        // Ném ngoại lệ với thông báo lỗi cụ thể
+        throw Exception('Unauthorized: Please login again');
       } else {
         throw Exception('Failed to delete task: ${response.statusCode} ${response.body}');
       }
@@ -481,7 +486,7 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
   }
 
   @override
-  Future<void> toggleTaskCompletion(String id) async {
+  Future<TaskModel> toggleTaskCompletion(String id) async {
     print('*** toggleTaskCompletion: $id ***');
 
     try {
@@ -490,10 +495,49 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
 
       print('Toggling task completion: ${task.isCompleted} -> ${!task.isCompleted}');
 
-      // Update the task with the opposite completion status
-      await updateTask(id, {
+      // Prepare headers and data
+      final headers = await _getHeaders();
+      final taskData = {
         'is_completed': !task.isCompleted,
-      });
+      };
+
+      print('*** Request ***');
+      print('uri: $baseUrl/api/v1/todos/$id');
+      print('headers: $headers');
+      print('body: ${json.encode(taskData)}');
+
+      // Call API directly
+      final response = await client.put(
+        Uri.parse('$baseUrl/api/v1/todos/$id'),
+        headers: headers,
+        body: json.encode(taskData),
+      );
+
+      print('*** Response ***');
+      print('statusCode: ${response.statusCode}');
+      print('body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // Parse the response to get the updated task
+        final responseData = json.decode(response.body);
+        print('responseData: $responseData');
+
+        if (responseData is Map<String, dynamic>) {
+          // Create a TaskModel from the response data
+          final updatedTask = TaskModel.fromJson(responseData);
+          print('Updated task: ${updatedTask.id}, isCompleted: ${updatedTask.isCompleted}');
+          return updatedTask;
+        } else {
+          // If the response is not a map, get the task again to ensure we have the latest state
+          print('Response is not a map, getting task again');
+          final updatedTask = await getTask(id);
+          print('Updated task (from getTask): ${updatedTask.id}, isCompleted: ${updatedTask.isCompleted}');
+          return updatedTask;
+        }
+      } else {
+        print('Failed to toggle task completion: ${response.statusCode} ${response.body}');
+        throw Exception('Failed to toggle task completion: ${response.statusCode}');
+      }
     } catch (e) {
       print('Error in toggleTaskCompletion: $e');
       throw Exception('Failed to toggle task completion: $e');

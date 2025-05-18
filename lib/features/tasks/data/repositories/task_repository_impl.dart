@@ -158,10 +158,16 @@ class TaskRepositoryImpl implements TaskRepository {
 
   @override
   Future<Either<Failure, void>> deleteTask(String id) async {
+    print('*** TaskRepositoryImpl.deleteTask: Called ***');
+    print('Task ID: $id');
+
     try {
+      print('*** TaskRepositoryImpl.deleteTask: Calling remoteDataSource.deleteTask ***');
       await remoteDataSource.deleteTask(id);
+      print('*** TaskRepositoryImpl.deleteTask: Task deleted successfully ***');
       return const Right(null);
     } catch (e) {
+      print('*** TaskRepositoryImpl.deleteTask: Error: $e ***');
       return Left(ServerFailure(
         message: 'Failed to delete task: $e',
         errorType: ApiErrorType.server,
@@ -170,11 +176,18 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
-  Future<Either<Failure, void>> toggleTaskCompletion(String id) async {
+  Future<Either<Failure, Task>> toggleTaskCompletion(String id) async {
     try {
-      await remoteDataSource.toggleTaskCompletion(id);
-      return const Right(null);
+      print('*** TaskRepositoryImpl.toggleTaskCompletion: Called ***');
+      print('Task ID: $id');
+
+      final taskModel = await remoteDataSource.toggleTaskCompletion(id);
+      print('*** TaskRepositoryImpl.toggleTaskCompletion: Task updated ***');
+      print('Task ID: ${taskModel.id}, isCompleted: ${taskModel.isCompleted}');
+
+      return Right(taskModel.toEntity());
     } catch (e) {
+      print('*** TaskRepositoryImpl.toggleTaskCompletion: Error: $e ***');
       return Left(ServerFailure(
         message: 'Failed to toggle task completion: $e',
         errorType: ApiErrorType.server,

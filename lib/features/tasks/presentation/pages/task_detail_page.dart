@@ -49,19 +49,67 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   }
 
   void _findTaskInState(List<Task> tasks) {
-    final task = tasks.firstWhere(
-      (t) => t.id == widget.taskId,
-      orElse: () => Task(
+    print('*** _findTaskInState: Looking for task with ID: ${widget.taskId} ***');
+    print('*** _findTaskInState: Number of tasks in state: ${tasks.length} ***');
+
+    Task? task;
+    try {
+      task = tasks.firstWhere(
+        (t) => t.id == widget.taskId,
+      );
+      print('*** _findTaskInState: Task found: ${task.id}, isCompleted: ${task.isCompleted} ***');
+    } catch (e) {
+      print('*** _findTaskInState: Task not found, using default task ***');
+      task = Task(
         id: '',
         userId: '',
         title: 'Không tìm thấy nhiệm vụ',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-      ),
-    );
-    setState(() {
-      _task = task;
-    });
+      );
+    }
+
+    // Cập nhật _task và kích hoạt rebuild UI
+    _updateTask(task);
+  }
+
+  void _updateTask(Task task) {
+    print('*** _updateTask: Updating task: ${task.id}, isCompleted: ${task.isCompleted} ***');
+
+    // Cập nhật _task và kích hoạt rebuild UI
+    if (mounted) {
+      setState(() {
+        _task = task;
+      });
+    }
+  }
+
+  // Phương thức để cập nhật trạng thái task trực tiếp trong UI
+  void _updateTaskCompletionStatus(bool isCompleted) {
+    print('*** _updateTaskCompletionStatus: Updating task completion status: $isCompleted ***');
+
+    if (_task != null) {
+      // Tạo một bản sao của task hiện tại với trạng thái mới
+      final updatedTask = Task(
+        id: _task!.id,
+        userId: _task!.userId,
+        title: _task!.title,
+        description: _task!.description,
+        isCompleted: isCompleted,
+        dueDate: _task!.dueDate,
+        priority: _task!.priority,
+        category: _task!.category,
+        tags: _task!.tags,
+        subTasks: _task!.subTasks,
+        reminders: _task!.reminders,
+        createdAt: _task!.createdAt,
+        updatedAt: DateTime.now(),
+        progress: _task!.progress,
+      );
+
+      // Cập nhật UI với task mới
+      _updateTask(updatedTask);
+    }
   }
 
   @override
@@ -72,6 +120,8 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
           _findTaskInState(state.tasks);
         } else if (state is TaskActionSuccess) {
           _findTaskInState(state.tasks);
+
+          // Xử lý các loại hành động khác nhau
           if (state.actionType == ActionType.addSubTask) {
             _subTaskController.clear();
             ScaffoldMessenger.of(context).showSnackBar(
@@ -81,6 +131,35 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Đã cập nhật công việc con')),
             );
+          } else if (state.actionType == ActionType.toggle) {
+            print('*** TaskDetailPage: Toggle action detected ***');
+            print('*** TaskDetailPage: Task ID: ${widget.taskId} ***');
+            print('*** TaskDetailPage: Old Is Completed: ${_task?.isCompleted} ***');
+
+            // Tìm task đã cập nhật trong danh sách tasks mới
+            Task? updatedTask;
+            try {
+              updatedTask = state.tasks.firstWhere(
+                (t) => t.id == widget.taskId,
+              );
+              print('*** TaskDetailPage: Updated task found in tasks list: ${updatedTask.id}, isCompleted: ${updatedTask.isCompleted} ***');
+
+              // Cập nhật UI với task mới từ danh sách tasks
+              _updateTask(updatedTask);
+            } catch (e) {
+              print('*** TaskDetailPage: Updated task not found in tasks list: $e ***');
+
+              // Nếu không tìm thấy task trong danh sách, kiểm tra state.data
+              if (state.data != null && state.data is Task) {
+                final dataTask = state.data as Task;
+                print('*** TaskDetailPage: Updated task found in state.data: ${dataTask.id}, isCompleted: ${dataTask.isCompleted} ***');
+
+                // Cập nhật UI với task từ state.data
+                _updateTask(dataTask);
+              } else {
+                print('*** TaskDetailPage: Updated task not found in state.data ***');
+              }
+            }
           }
         }
       },
@@ -132,7 +211,20 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
           bottomSheet: _buildAddSubTaskInput(),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () {
+              // Cập nhật UI trước khi gọi API
+              _updateTaskCompletionStatus(!_task!.isCompleted);
+
+              // Gọi API để cập nhật trạng thái và refresh danh sách task
               context.read<TasksBloc>().add(ToggleTaskCompletion(_task!.id));
+
+              // Hiển thị thông báo
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(!_task!.isCompleted
+                    ? 'Đã đánh dấu hoàn thành công việc'
+                    : 'Đã đánh dấu chưa hoàn thành công việc'),
+                ),
+              );
             },
             icon: Icon(_task!.isCompleted ? Icons.refresh : Icons.check),
             label: Text(_task!.isCompleted ? 'Đánh dấu chưa hoàn thành' : 'Đánh dấu hoàn thành'),
@@ -145,7 +237,17 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   Widget _buildTaskHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: Theme.of(context).colorScheme.surface,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).shadowColor.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -165,7 +267,21 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
               Checkbox(
                 value: _task!.isCompleted,
                 onChanged: (value) {
+                  // Cập nhật UI trước khi gọi API
+                  _updateTaskCompletionStatus(!_task!.isCompleted);
+
+                  // Gọi API để cập nhật trạng thái và refresh danh sách task
                   context.read<TasksBloc>().add(ToggleTaskCompletion(_task!.id));
+
+                  // Hiển thị thông báo
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(!_task!.isCompleted
+                        ? 'Đã đánh dấu hoàn thành công việc'
+                        : 'Đã đánh dấu chưa hoàn thành công việc'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
                 },
               ),
             ],
@@ -640,16 +756,28 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   }
 
   void _showAddSubTaskDialog() {
+    // Lấy TasksBloc từ context hiện tại
+    final tasksBloc = context.read<TasksBloc>();
+
     showDialog(
       context: context,
-      builder: (context) => AddSubTaskDialog(taskId: _task!.id),
+      builder: (context) => BlocProvider.value(
+        value: tasksBloc,
+        child: AddSubTaskDialog(taskId: _task!.id),
+      ),
     );
   }
 
   void _showAddReminderDialog() {
+    // Lấy TasksBloc từ context hiện tại
+    final tasksBloc = context.read<TasksBloc>();
+
     showDialog(
       context: context,
-      builder: (context) => AddReminderDialog(taskId: _task!.id),
+      builder: (context) => BlocProvider.value(
+        value: tasksBloc,
+        child: AddReminderDialog(taskId: _task!.id),
+      ),
     );
   }
 }

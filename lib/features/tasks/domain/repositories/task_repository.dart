@@ -25,7 +25,7 @@ abstract class TaskRepository {
     List<String>? tags,
   });
   Future<Either<Failure, void>> deleteTask(String id);
-  Future<Either<Failure, void>> toggleTaskCompletion(String id);
+  Future<Either<Failure, Task>> toggleTaskCompletion(String id);
   Future<Either<Failure, SubTask>> addSubTask(String taskId, {
     required String title,
     DateTime? dueDate,

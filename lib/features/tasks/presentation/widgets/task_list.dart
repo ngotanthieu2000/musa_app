@@ -47,22 +47,92 @@ class TaskList extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       itemBuilder: (context, index) {
         final task = taskList[index];
-        // Add staggered animation for list items
-        return AnimatedSlide(
-          offset: Offset(0, 0),
-          duration: Duration(milliseconds: 300 + (index * 50)),
-          curve: Curves.easeOutQuart,
-          child: AnimatedOpacity(
-            opacity: 1.0,
-            duration: Duration(milliseconds: 300 + (index * 50)),
-            curve: Curves.easeInOut,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: TaskListItem(task: task),
-            ),
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: TaskListItem(
+            task: task,
+            onToggle: () {
+              context.read<TasksBloc>().add(ToggleTaskCompletion(task.id));
+            },
+            onEdit: () {
+              // Lấy TasksBloc từ context hiện tại
+              final tasksBloc = context.read<TasksBloc>();
+
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => BlocProvider.value(
+                  value: tasksBloc,
+                  child: AddTaskBottomSheet(
+                    taskToEdit: task,
+                    tasksBloc: tasksBloc,
+                  ),
+                ),
+              );
+            },
+            onDelete: () {
+              _showDeleteConfirmation(context, task);
+            },
           ),
         );
       },
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xóa nhiệm vụ'),
+        content: Text('Bạn có chắc chắn muốn xóa "${task.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _deleteTaskWithUndo(context, task);
+            },
+            child: Text(
+              'Xóa',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteTaskWithUndo(BuildContext context, Task task) {
+    // Xóa task (với optimistic update)
+    context.read<TasksBloc>().add(DeleteTask(task.id));
+
+    // Hiển thị Snackbar với nút Undo
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Đã xóa "${task.title}"'),
+        action: SnackBarAction(
+          label: 'Hoàn tác',
+          onPressed: () {
+            // Thêm lại task đã xóa
+            context.read<TasksBloc>().add(AddTask(
+              title: task.title,
+              description: task.description,
+              dueDate: task.dueDate,
+              priority: task.priority,
+              category: task.category,
+              tags: task.tags,
+            ));
+          },
+        ),
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 

@@ -174,7 +174,8 @@ enum ActionType {
   toggle,
   addSubTask,
   updateSubTask,
-  addReminder
+  addReminder,
+  fetch
 }
 
 class TasksError extends TasksState {
@@ -297,38 +298,31 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
       (task) async {
         print('*** _onAddTask: createTask succeeded, task ID: ${task.id} ***');
 
-        // Tạo danh sách tasks chứa task mới
-        final List<Task> tasks = [task];
-
-        // Thử lấy danh sách tasks từ API (nhưng không phụ thuộc vào kết quả)
+        // Lấy danh sách tasks từ API
         print('*** _onAddTask: Calling repository.getTasks ***');
         final tasksResult = await repository.getTasks();
         print('*** _onAddTask: repository.getTasks returned ***');
 
-        // Nếu lấy danh sách tasks thành công, sử dụng danh sách đó
-        // Nếu không, sử dụng danh sách chỉ chứa task mới
-        final List<Task> finalTasks = tasksResult.fold(
+        emit(tasksResult.fold(
           (failure) {
             print('*** _onAddTask: getTasks failed: ${failure.message} ***');
-            print('*** _onAddTask: Using only the new task ***');
-            return tasks;
+            // Nếu không lấy được danh sách tasks, trả về danh sách chỉ chứa task mới
+            return TaskActionSuccess(
+              tasks: [task],
+              message: 'Đã thêm công việc mới thành công',
+              actionType: ActionType.create,
+              data: task,
+            );
           },
           (apiTasks) {
             print('*** _onAddTask: getTasks succeeded, ${apiTasks.length} tasks ***');
-            // Nếu API trả về danh sách rỗng, sử dụng danh sách chỉ chứa task mới
-            if (apiTasks.isEmpty) {
-              print('*** _onAddTask: API returned empty list, using only the new task ***');
-              return tasks;
-            }
-            return apiTasks;
+            return TaskActionSuccess(
+              tasks: apiTasks,
+              message: 'Đã thêm công việc mới thành công',
+              actionType: ActionType.create,
+              data: task,
+            );
           },
-        );
-
-        emit(TaskActionSuccess(
-          tasks: finalTasks,
-          message: 'Đã thêm công việc mới thành công',
-          actionType: ActionType.create,
-          data: task,
         ));
       },
     );
@@ -390,64 +384,273 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     DeleteTask event,
     Emitter<TasksState> emit,
   ) async {
-    emit(TasksLoading());
+    print('*** _onDeleteTask: Event received ***');
+    print('Task ID: ${event.taskId}');
 
-    final deleteResult = await repository.deleteTask(event.taskId);
+    // Lưu trữ trạng thái hiện tại để có thể khôi phục nếu có lỗi
+    final currentState = state;
+    List<Task> currentTasks = [];
+    Task? deletedTask;
 
-    await deleteResult.fold(
-      (failure) async => emit(TasksError(
-        message: failure.message,
-        errorType: failure.errorType,
-        data: failure.data,
-      )),
-      (_) async {
-        final tasksResult = await repository.getTasks();
-        emit(tasksResult.fold(
-          (failure) => TasksError(
+    // Lấy danh sách tasks hiện tại
+    if (currentState is TasksLoaded) {
+      print('*** _onDeleteTask: Current state is TasksLoaded ***');
+      currentTasks = List.from(currentState.tasks);
+      print('*** _onDeleteTask: Current tasks count: ${currentTasks.length} ***');
+    } else if (currentState is TaskActionSuccess) {
+      print('*** _onDeleteTask: Current state is TaskActionSuccess ***');
+      currentTasks = List.from(currentState.tasks);
+      print('*** _onDeleteTask: Current tasks count: ${currentTasks.length} ***');
+    } else {
+      print('*** _onDeleteTask: Current state is not TasksLoaded or TaskActionSuccess ***');
+      // Nếu không có danh sách tasks, không thể thực hiện optimistic update
+      print('*** _onDeleteTask: Emitting TasksLoading ***');
+      emit(TasksLoading());
+
+      print('*** _onDeleteTask: Calling repository.deleteTask ***');
+      final deleteResult = await repository.deleteTask(event.taskId);
+      print('*** _onDeleteTask: repository.deleteTask returned ***');
+
+      await deleteResult.fold(
+        (failure) async {
+          print('*** _onDeleteTask: deleteTask failed: ${failure.message} ***');
+          emit(TasksError(
             message: failure.message,
             errorType: failure.errorType,
             data: failure.data,
-          ),
-          (tasks) => TaskActionSuccess(
-            tasks: tasks,
-            message: 'Đã xóa công việc thành công',
-            actionType: ActionType.delete,
-          ),
+          ));
+        },
+        (_) async {
+          print('*** _onDeleteTask: deleteTask succeeded ***');
+          print('*** _onDeleteTask: Calling repository.getTasks ***');
+          final tasksResult = await repository.getTasks();
+          print('*** _onDeleteTask: repository.getTasks returned ***');
+
+          emit(tasksResult.fold(
+            (failure) {
+              print('*** _onDeleteTask: getTasks failed: ${failure.message} ***');
+              return TasksError(
+                message: failure.message,
+                errorType: failure.errorType,
+                data: failure.data,
+              );
+            },
+            (tasks) {
+              print('*** _onDeleteTask: getTasks succeeded, ${tasks.length} tasks ***');
+              return TaskActionSuccess(
+                tasks: tasks,
+                message: 'Đã xóa công việc thành công',
+                actionType: ActionType.delete,
+              );
+            },
+          ));
+        },
+      );
+      print('*** _onDeleteTask: Completed (early return) ***');
+      return;
+    }
+
+    // Tìm task cần xóa
+    try {
+      print('*** _onDeleteTask: Finding task to delete ***');
+      deletedTask = currentTasks.firstWhere((task) => task.id == event.taskId);
+      print('*** _onDeleteTask: Found task: ${deletedTask.title} ***');
+    } catch (e) {
+      // Nếu không tìm thấy task, báo lỗi
+      print('*** _onDeleteTask: Task not found, emitting error ***');
+      emit(TasksError(
+        message: 'Không tìm thấy công việc cần xóa',
+        errorType: ApiErrorType.notFound,
+      ));
+      return;
+    }
+
+    // Xóa task khỏi danh sách (optimistic update)
+    print('*** _onDeleteTask: Removing task from list (optimistic update) ***');
+    final updatedTasks = currentTasks.where((task) => task.id != event.taskId).toList();
+    print('*** _onDeleteTask: Updated tasks count: ${updatedTasks.length} ***');
+
+    // Emit trạng thái mới với task đã bị xóa
+    print('*** _onDeleteTask: Emitting TaskActionSuccess with optimistic update ***');
+    emit(TaskActionSuccess(
+      tasks: updatedTasks,
+      message: 'Đã xóa công việc',
+      actionType: ActionType.delete,
+      data: deletedTask, // Lưu task đã xóa để có thể hoàn tác
+    ));
+
+    // Gọi API để xóa task
+    print('*** _onDeleteTask: Calling repository.deleteTask ***');
+    final deleteResult = await repository.deleteTask(event.taskId);
+    print('*** _onDeleteTask: repository.deleteTask returned ***');
+
+    await deleteResult.fold(
+      (failure) async {
+        print('*** _onDeleteTask: deleteTask failed: ${failure.message} ***');
+        // Nếu có lỗi, khôi phục lại trạng thái cũ
+        emit(TasksError(
+          message: failure.message,
+          errorType: failure.errorType,
+          data: failure.data,
         ));
+
+        // Khôi phục lại danh sách tasks
+        print('*** _onDeleteTask: Restoring previous state ***');
+        if (currentState is TasksLoaded) {
+          emit(TasksLoaded(currentTasks));
+        } else if (currentState is TaskActionSuccess) {
+          emit(TaskActionSuccess(
+            tasks: currentTasks,
+            message: 'Không thể xóa công việc',
+            actionType: ActionType.delete,
+            data: null,
+          ));
+        }
+      },
+      (_) async {
+        print('*** _onDeleteTask: deleteTask succeeded ***');
+        // Nếu thành công, không cần làm gì thêm vì đã cập nhật UI
+        // Có thể gọi API để lấy danh sách tasks mới nhất, nhưng không cần thiết
+        // vì đã thực hiện optimistic update
       },
     );
+    print('*** _onDeleteTask: Completed ***');
   }
 
   Future<void> _onToggleTaskCompletion(
     ToggleTaskCompletion event,
     Emitter<TasksState> emit,
   ) async {
+    print('*** _onToggleTaskCompletion: Event received ***');
+    print('Task ID: ${event.taskId}');
+
+    // Lấy trạng thái hiện tại của task
+    Task? currentTask;
+    if (state is TasksLoaded) {
+      try {
+        currentTask = (state as TasksLoaded).tasks.firstWhere(
+          (t) => t.id == event.taskId,
+        );
+      } catch (e) {
+        currentTask = null;
+      }
+    } else if (state is TaskActionSuccess) {
+      try {
+        currentTask = (state as TaskActionSuccess).tasks.firstWhere(
+          (t) => t.id == event.taskId,
+        );
+      } catch (e) {
+        currentTask = null;
+      }
+    }
+
+    if (currentTask != null) {
+      print('*** _onToggleTaskCompletion: Current task found ***');
+      print('Current completion status: ${currentTask.isCompleted}');
+    } else {
+      print('*** _onToggleTaskCompletion: Current task not found ***');
+    }
+
+    // Emit loading state
     emit(TasksLoading());
 
-    final toggleResult = await repository.toggleTaskCompletion(event.taskId);
+    try {
+      print('*** _onToggleTaskCompletion: Calling repository.toggleTaskCompletion ***');
+      final toggleResult = await repository.toggleTaskCompletion(event.taskId);
+      print('*** _onToggleTaskCompletion: repository.toggleTaskCompletion returned ***');
 
-    await toggleResult.fold(
-      (failure) async => emit(TasksError(
-        message: failure.message,
-        errorType: failure.errorType,
-        data: failure.data,
-      )),
-      (_) async {
-        final tasksResult = await repository.getTasks();
-        emit(tasksResult.fold(
-          (failure) => TasksError(
+      await toggleResult.fold(
+        (failure) async {
+          print('*** _onToggleTaskCompletion: toggleTaskCompletion failed: ${failure.message} ***');
+          emit(TasksError(
             message: failure.message,
             errorType: failure.errorType,
             data: failure.data,
-          ),
-          (tasks) => TaskActionSuccess(
-            tasks: tasks,
-            message: 'Đã cập nhật trạng thái công việc',
-            actionType: ActionType.toggle,
-          ),
-        ));
-      },
-    );
+          ));
+        },
+        (updatedTask) async {
+          print('*** _onToggleTaskCompletion: toggleTaskCompletion succeeded ***');
+          print('*** _onToggleTaskCompletion: Updated task: ${updatedTask.id}, isCompleted: ${updatedTask.isCompleted} ***');
+
+          // Luôn gọi API để lấy danh sách tasks mới nhất
+          print('*** _onToggleTaskCompletion: Calling repository.getTasks ***');
+          final tasksResult = await repository.getTasks();
+          print('*** _onToggleTaskCompletion: repository.getTasks returned ***');
+
+          emit(tasksResult.fold(
+            (failure) {
+              print('*** _onToggleTaskCompletion: getTasks failed: ${failure.message} ***');
+              // Nếu không lấy được danh sách tasks, vẫn cập nhật UI với task đã cập nhật
+              List<Task> updatedTasks = [];
+
+              // Nếu có state trước đó, lấy danh sách tasks từ state đó
+              if (state is TasksLoaded) {
+                updatedTasks = List.from((state as TasksLoaded).tasks);
+              } else if (state is TaskActionSuccess) {
+                updatedTasks = List.from((state as TaskActionSuccess).tasks);
+              }
+
+              // Cập nhật task trong danh sách
+              final taskIndex = updatedTasks.indexWhere((t) => t.id == updatedTask.id);
+              if (taskIndex != -1) {
+                updatedTasks[taskIndex] = updatedTask;
+              } else {
+                updatedTasks.add(updatedTask);
+              }
+
+              return TaskActionSuccess(
+                tasks: updatedTasks,
+                message: 'Đã cập nhật trạng thái công việc',
+                actionType: ActionType.toggle,
+                data: updatedTask,
+              );
+            },
+            (tasks) {
+              print('*** _onToggleTaskCompletion: getTasks succeeded, ${tasks.length} tasks ***');
+
+              // Đảm bảo task đã cập nhật có trong danh sách
+              final taskIndex = tasks.indexWhere((t) => t.id == updatedTask.id);
+              if (taskIndex == -1) {
+                print('*** _onToggleTaskCompletion: Updated task not found in tasks list, adding it ***');
+                tasks.add(updatedTask);
+              } else {
+                print('*** _onToggleTaskCompletion: Updated task found in tasks list, updating it ***');
+                // Đảm bảo task trong danh sách có trạng thái mới nhất
+                tasks[taskIndex] = updatedTask;
+              }
+
+              return TaskActionSuccess(
+                tasks: tasks,
+                message: 'Đã cập nhật trạng thái công việc',
+                actionType: ActionType.toggle,
+                data: updatedTask,
+              );
+            },
+          ));
+        },
+      );
+    } catch (e) {
+      print('*** _onToggleTaskCompletion: Unexpected error: $e ***');
+
+      // Nếu có lỗi không xác định, vẫn gọi API để lấy danh sách tasks mới nhất
+      print('*** _onToggleTaskCompletion: Calling repository.getTasks after error ***');
+      final tasksResult = await repository.getTasks();
+
+      emit(tasksResult.fold(
+        (failure) => TasksError(
+          message: 'Không thể cập nhật trạng thái công việc: ${failure.message}',
+          errorType: failure.errorType,
+          data: failure.data,
+        ),
+        (tasks) => TaskActionSuccess(
+          tasks: tasks,
+          message: 'Đã cập nhật danh sách công việc',
+          actionType: ActionType.fetch,
+        ),
+      ));
+    }
+
+    print('*** _onToggleTaskCompletion: Completed ***');
   }
 
   Future<void> _onAddSubTask(

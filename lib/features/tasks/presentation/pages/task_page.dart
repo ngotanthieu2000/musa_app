@@ -251,12 +251,7 @@ class _TaskPageState extends State<TaskPage> with TickerProviderStateMixin {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.read<TasksBloc>().add(DeleteTask(task.id));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Đã xóa nhiệm vụ'),
-                ),
-              );
+              _deleteTaskWithUndo(task);
             },
             child: Text(
               'Xóa',
@@ -264,6 +259,35 @@ class _TaskPageState extends State<TaskPage> with TickerProviderStateMixin {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _deleteTaskWithUndo(Task task) {
+    // Xóa task (với optimistic update)
+    context.read<TasksBloc>().add(DeleteTask(task.id));
+
+    // Hiển thị Snackbar với nút Undo
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Đã xóa "${task.title}"'),
+        action: SnackBarAction(
+          label: 'Hoàn tác',
+          onPressed: () {
+            // Thêm lại task đã xóa
+            context.read<TasksBloc>().add(AddTask(
+              title: task.title,
+              description: task.description,
+              dueDate: task.dueDate,
+              priority: task.priority,
+              category: task.category,
+              tags: task.tags,
+            ));
+          },
+        ),
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
