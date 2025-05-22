@@ -363,4 +363,39 @@ class TaskModel {
       progress: task.progress,
     );
   }
+
+  // Thêm phương thức copyWith để hỗ trợ cập nhật trạng thái
+  TaskModel copyWith({
+    String? id,
+    String? userId,
+    String? title,
+    String? description,
+    bool? isCompleted,
+    DateTime? dueDate,
+    TaskPriority? priority,
+    String? category,
+    List<String>? tags,
+    List<SubTaskModel>? subTasks,
+    List<ReminderModel>? reminders,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    int? progress,
+  }) {
+    return TaskModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      isCompleted: isCompleted ?? this.isCompleted,
+      dueDate: dueDate ?? this.dueDate,
+      priority: priority ?? this.priority,
+      category: category ?? this.category,
+      tags: tags ?? this.tags,
+      subTasks: subTasks ?? this.subTasks,
+      reminders: reminders ?? this.reminders,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      progress: progress ?? this.progress,
+    );
+  }
 }

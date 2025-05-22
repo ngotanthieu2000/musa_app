@@ -29,7 +29,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     // Tải profile khi khởi tạo
     _loadProfileData();
   }
-  
+
   void _loadProfileData() {
     print('DEBUG: Loading profile data in ProfilePage');
     context.read<ProfileBloc>().add(const GetProfileEvent());
@@ -40,7 +40,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -49,12 +49,12 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
       _loadProfileData();
     }
   }
-  
+
   // Đảm bảo tải lại dữ liệu khi quay lại từ các trang khác
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     // Chỉ gọi khi không phải lần tải đầu tiên (đã xử lý ở initState)
     if (!_isInitialLoad) {
       final route = ModalRoute.of(context);
@@ -88,7 +88,26 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
         onRefresh: () async {
           context.read<ProfileBloc>().add(const GetProfileEvent());
         },
-        child: BlocBuilder<ProfileBloc, ProfileState>(
+        child: BlocConsumer<ProfileBloc, ProfileState>(
+          listener: (context, state) {
+            // Xử lý các trạng thái cần phản hồi
+            if (state is ProfileActionSuccess) {
+              // Khi nhận được thông báo thành công, hiển thị thông báo
+              print('DEBUG: Received ProfileActionSuccess in ProfilePage');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.green,
+                ),
+              );
+
+              // Không cần gọi GetProfileEvent vì đã được xử lý trong Bloc
+            } else if (state is ProfileLoaded) {
+              // Khi nhận được dữ liệu profile mới, in ra để debug
+              print('DEBUG: Received ProfileLoaded in ProfilePage');
+              print('DEBUG: Profile data: ${state.profile}');
+            }
+          },
           builder: (context, state) {
             if (state is ProfileLoading) {
               return const Center(child: CircularProgressIndicator());
@@ -117,7 +136,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
               final user = state.user;
               final completionPercentage = state.completionPercentage;
               final missingFields = state.missingFields;
-              
+
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(AppDimensions.screenPadding),
                 child: Column(
@@ -137,7 +156,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                               ? Text(
                                   _getInitials(user.name ?? user.email ?? ''),
                                   style: const TextStyle(
-                                    fontSize: 32, 
+                                    fontSize: 32,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.primary,
                                   ),
@@ -172,7 +191,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                                   backgroundColor: AppColors.primary.withOpacity(0.1),
                                   elevation: 0,
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, 
+                                    horizontal: 12,
                                     vertical: 8,
                                   ),
                                 ),
@@ -182,18 +201,18 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Profile Completion Widget
                     ProfileCompletionWidget(
                       completionPercentage: completionPercentage,
                       missingFields: missingFields,
                       onCompleteProfile: () => _navigateToEditProfile(context),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Các phân hệ tính năng
                     const Text(
                       'Tính năng cá nhân hóa',
@@ -202,9 +221,9 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Grid các tính năng
                     GridView.count(
                       physics: const NeverScrollableScrollPhysics(),
@@ -252,7 +271,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                 ),
               );
             }
-            
+
             // Trạng thái mặc định khi không có dữ liệu
             return const Center(
               child: Text('Không có dữ liệu hồ sơ.'),
@@ -262,7 +281,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
       ),
     );
   }
-  
+
   // Hàm điều hướng đến trang chỉnh sửa hồ sơ
   void _navigateToEditProfile(BuildContext context) {
     try {
@@ -274,7 +293,7 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
       context.push('/profile/edit');
     }
   }
-  
+
   // Lấy chữ cái đầu tiên từ tên
   String _getInitials(String name) {
     if (name.isEmpty) return '?';
@@ -284,4 +303,4 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     }
     return name[0].toUpperCase();
   }
-} 
+}

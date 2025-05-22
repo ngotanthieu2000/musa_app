@@ -229,6 +229,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 backgroundColor: Colors.red,
               ),
             );
+          } else if (state is ProfileLoaded && _hasSubmitted) {
+            // Khi nhận được ProfileLoaded sau khi submit, cập nhật UI
+            print('DEBUG: Received ProfileLoaded in UI while _hasSubmitted is true');
+            print('DEBUG: Updated profile data: ${state.profile}');
+
+            setState(() {
+              _isSubmitting = false;
+              // Không reset _hasSubmitted ở đây vì sẽ được xử lý khi nhận ProfileActionSuccess
+            });
+
+            // Không điều hướng ở đây vì sẽ được xử lý khi nhận ProfileActionSuccess
           } else if (state is ProfileActionSuccess && _hasSubmitted) {
             // Xử lý thông báo thành công (từ xử lý đặc biệt trong Bloc)
             print('DEBUG: Received ProfileActionSuccess in UI');
@@ -244,41 +255,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
             );
 
-            // Quay lại trang profile
+            // Quay lại trang profile sau khi nhận được thông báo thành công
             Future.delayed(const Duration(milliseconds: 800), () {
               if (mounted) {
                 print('DEBUG: Navigating back to profile page after ActionSuccess');
                 context.go('/profile');
               }
             });
-          } else if (state is ProfileLoaded && _hasSubmitted) {
-            // Chỉ xử lý khi đã submit form và nhận được state ProfileLoaded
-
-            // Kiểm tra nếu profile vừa được cập nhật
-            if (widget.profile.id == state.profile.id) {
-              print('DEBUG: Profile update successful in UI, returning to profile page');
-              setState(() {
-                _isSubmitting = false;
-                _hasSubmitted = false; // Reset lại trạng thái submit
-              });
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Hồ sơ đã được cập nhật thành công'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-
-              // Đóng màn hình edit-profile sau khi cập nhật thành công
-              // và trở về trang profile để hiển thị dữ liệu mới
-              Future.delayed(const Duration(milliseconds: 800), () {
-                if (mounted) {
-                  // Quay về trang profile
-                  print('DEBUG: Navigating back to profile page');
-                  context.go('/profile');
-                }
-              });
-            }
           }
         },
         builder: (context, state) {
@@ -525,11 +508,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget _buildDefaultAvatar(TextTheme textTheme, ColorScheme colorScheme) {
+    // Usar el nombre del perfil si _nameController aún no está inicializado
+    final String displayText = (_nameController != null && _nameController.text.isNotEmpty)
+        ? _nameController.text.substring(0, 1).toUpperCase()
+        : ((widget.profile.name != null && widget.profile.name!.isNotEmpty)
+            ? widget.profile.name!.substring(0, 1).toUpperCase()
+            : '?');
+
     return Center(
       child: Text(
-        _nameController.text.isNotEmpty
-            ? _nameController.text.substring(0, 1).toUpperCase()
-            : '?',
+        displayText,
         style: textTheme.headlineLarge?.copyWith(
           color: colorScheme.primary,
           fontWeight: FontWeight.bold,

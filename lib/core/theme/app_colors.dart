@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 
 /// Class chứa các màu sắc được sử dụng trong ứng dụng
 class AppColors {
-  // Primary - Sử dụng màu xanh dương nhẹ nhàng hơn
-  static const primary = Color(0xFF4F46E5);       // Indigo-600
-  static const primaryDark = Color(0xFF4338CA);   // Indigo-700
-  static const primaryLight = Color(0xFF818CF8);  // Indigo-400
-  static const primaryLighter = Color(0xFFC7D2FE); // Indigo-200
-  static const primaryLightest = Color(0xFFEEF2FF); // Indigo-50
+  // Primary - Sử dụng màu xanh dương hiện đại và sang trọng
+  static const primary = Color(0xFF3B82F6);       // Blue-500
+  static const primaryDark = Color(0xFF2563EB);   // Blue-600
+  static const primaryLight = Color(0xFF60A5FA);  // Blue-400
+  static const primaryLighter = Color(0xFFBFDBFE); // Blue-200
+  static const primaryLightest = Color(0xFFEFF6FF); // Blue-50
 
-  // Secondary - Sử dụng màu tím nhẹ nhàng
+  // Secondary - Sử dụng màu tím nhẹ nhàng và tinh tế
   static const secondary = Color(0xFF8B5CF6);     // Violet-500
   static const secondaryDark = Color(0xFF7C3AED);  // Violet-600
   static const secondaryLight = Color(0xFFA78BFA); // Violet-400

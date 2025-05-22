@@ -222,13 +222,15 @@ class AppRouter {
           // Tasks route
           GoRoute(
             path: '/tasks',
-            pageBuilder: (context, state) => MaterialPage<void>(
-              key: state.pageKey,
-              child: BlocProvider(
-                create: (context) => core.sl<TasksBloc>(),
-                child: const TasksPage(),
-              ),
-            ),
+            pageBuilder: (context, state) {
+              return MaterialPage<void>(
+                key: state.pageKey,
+                child: BlocProvider<TasksBloc>(
+                  create: (context) => core.sl<TasksBloc>()..add(FetchTasks()),
+                  child: const TasksPage(),
+                ),
+              );
+            },
             routes: [
               // Task detail route
               GoRoute(
@@ -237,10 +239,17 @@ class AppRouter {
                 parentNavigatorKey: _rootNavigatorKey,
                 pageBuilder: (context, state) {
                   final taskId = state.pathParameters['id'] ?? '';
+
+                  // Tạo một instance TasksBloc mới cho trang chi tiết
+                  final tasksBloc = core.sl<TasksBloc>();
+
+                  // Đảm bảo dữ liệu được tải khi vào trang chi tiết
+                  tasksBloc.add(FetchTasks());
+
                   return MaterialPage<void>(
                     key: state.pageKey,
-                    child: BlocProvider(
-                      create: (context) => core.sl<TasksBloc>(),
+                    child: BlocProvider<TasksBloc>.value(
+                      value: tasksBloc,
                       child: TaskDetailPage(taskId: taskId),
                     ),
                   );

@@ -37,9 +37,9 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     Emitter<ProfileState> emit,
   ) async {
     emit(ProfileLoading());
-    
+
     final result = await getProfile();
-    
+
     result.fold(
       (failure) => emit(ProfileError(message: _mapFailureToMessage(failure))),
       (profile) => emit(ProfileLoaded(profile: profile)),
@@ -52,15 +52,15 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ) async {
     emit(ProfileLoading());
     print('DEBUG BLOC: Starting profile update with data: ${event.profile}');
-    
+
     final result = await updateProfile(event.profile);
-    
+
     result.fold(
       (failure) {
         print('DEBUG BLOC: Profile update failed with error: ${failure.message}');
-        
+
         // Kiểm tra nếu là lỗi phân tích dữ liệu nhưng thực tế API đã update thành công
-        if (failure.message.contains('Invalid response format') || 
+        if (failure.message.contains('Invalid response format') ||
             failure.message.contains('null is not a subtype of type')) {
           print('DEBUG BLOC: API might have updated successfully despite parsing error, fetching latest profile');
           // Fetch lại profile và emit ProfileLoaded
@@ -72,10 +72,18 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           emit(ProfileError(message: _mapFailureToMessage(failure)));
         }
       },
-      (profile) {
+      (profile) async {
         print('DEBUG BLOC: Profile update successful with data: $profile');
-        // Emit profile đã cập nhật
+
+        // Emit profile đã cập nhật trước
         emit(ProfileLoaded(profile: profile));
+
+        // Sau đó emit thông báo thành công
+        emit(const ProfileActionSuccess(message: 'Hồ sơ đã được cập nhật thành công'));
+
+        // Fetch lại profile từ server để đảm bảo dữ liệu mới nhất
+        print('DEBUG BLOC: Fetching latest profile data after successful update');
+        add(const GetProfileEvent());
       },
     );
   }
@@ -85,12 +93,22 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     Emitter<ProfileState> emit,
   ) async {
     emit(ProfileLoading());
-    
+
     final result = await updateProfile(event.preferences);
-    
+
     result.fold(
       (failure) => emit(ProfileError(message: _mapFailureToMessage(failure))),
-      (profile) => emit(ProfileLoaded(profile: profile)),
+      (profile) {
+        // Emit profile đã cập nhật trước
+        emit(ProfileLoaded(profile: profile));
+
+        // Sau đó emit thông báo thành công
+        emit(const ProfileActionSuccess(message: 'Tùy chọn đã được cập nhật thành công'));
+
+        // Fetch lại profile từ server để đảm bảo dữ liệu mới nhất
+        print('DEBUG BLOC: Fetching latest profile data after preferences update');
+        add(const GetProfileEvent());
+      },
     );
   }
 
@@ -99,12 +117,22 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     Emitter<ProfileState> emit,
   ) async {
     emit(ProfileLoading());
-    
+
     final result = await updateProfile(event.settings);
-    
+
     result.fold(
       (failure) => emit(ProfileError(message: _mapFailureToMessage(failure))),
-      (profile) => emit(ProfileLoaded(profile: profile)),
+      (profile) {
+        // Emit profile đã cập nhật trước
+        emit(ProfileLoaded(profile: profile));
+
+        // Sau đó emit thông báo thành công
+        emit(const ProfileActionSuccess(message: 'Cài đặt thông báo đã được cập nhật'));
+
+        // Fetch lại profile từ server để đảm bảo dữ liệu mới nhất
+        print('DEBUG BLOC: Fetching latest profile data after notification settings update');
+        add(const GetProfileEvent());
+      },
     );
   }
 
@@ -113,12 +141,22 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     Emitter<ProfileState> emit,
   ) async {
     emit(ProfileLoading());
-    
+
     final result = await updateProfile(event.healthData);
-    
+
     result.fold(
       (failure) => emit(ProfileError(message: _mapFailureToMessage(failure))),
-      (profile) => emit(ProfileLoaded(profile: profile)),
+      (profile) {
+        // Emit profile đã cập nhật trước
+        emit(ProfileLoaded(profile: profile));
+
+        // Sau đó emit thông báo thành công
+        emit(const ProfileActionSuccess(message: 'Dữ liệu sức khỏe đã được cập nhật'));
+
+        // Fetch lại profile từ server để đảm bảo dữ liệu mới nhất
+        print('DEBUG BLOC: Fetching latest profile data after health data update');
+        add(const GetProfileEvent());
+      },
     );
   }
 
@@ -127,12 +165,12 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     Emitter<ProfileState> emit,
   ) async {
     emit(ProfileLoading());
-    
+
     final result = await changePassword(
       currentPassword: event.currentPassword,
       newPassword: event.newPassword,
     );
-    
+
     result.fold(
       (failure) => emit(ProfileError(message: _mapFailureToMessage(failure))),
       (success) {
@@ -160,4 +198,4 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         return 'Lỗi không xác định. Vui lòng thử lại.';
     }
   }
-} 
+}
